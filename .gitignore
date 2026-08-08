@@ -1,0 +1,32 @@
+# Environment files (CRITICAL SECURITY)
+.env
+.env.local
+.env.*.local
+*.env
+backend/.env
+
+# Python / Virtual Environments
+venv/
+backend/venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+backend/jamia_usmania.db
+*.db
+
+# Node / Next.js
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+.vercel
+dist
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
