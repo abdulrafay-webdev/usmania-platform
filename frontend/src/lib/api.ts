@@ -25,6 +25,8 @@ export interface Student {
   father_guardian_name: string;
   assigned_teacher_id?: string;
   assigned_teacher_name?: string;
+  is_zakat_eligible?: boolean;
+  is_academy_student?: boolean;
 }
 
 export interface Teacher {

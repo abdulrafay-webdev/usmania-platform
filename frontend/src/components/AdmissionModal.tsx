@@ -11,7 +11,7 @@ import {
   Student,
   Teacher
 } from '@/lib/api';
-import { X, Upload, CheckCircle2, UserCheck, AlertCircle, Sparkles, Pencil } from 'lucide-react';
+import { X, Upload, CheckCircle2, UserCheck, AlertCircle, Sparkles, Pencil, HeartHandshake, School } from 'lucide-react';
 
 interface AdmissionModalProps {
   isOpen: boolean;
@@ -59,7 +59,9 @@ export default function AdmissionModal({
     boarding: false,
     admission_date: new Date().toISOString().split('T')[0],
     assigned_teacher_id: '',
-    assigned_teacher_name: ''
+    assigned_teacher_name: '',
+    is_zakat_eligible: false,
+    is_academy_student: false
   });
 
   // Load edit record data into form
@@ -96,7 +98,9 @@ export default function AdmissionModal({
           boarding: (editRecord as Student).boarding || false,
           admission_date: editRecord.admission_date || new Date().toISOString().split('T')[0],
           assigned_teacher_id: (editRecord as Student).assigned_teacher_id || '',
-          assigned_teacher_name: (editRecord as Student).assigned_teacher_name || ''
+          assigned_teacher_name: (editRecord as Student).assigned_teacher_name || '',
+          is_zakat_eligible: (editRecord as Student).is_zakat_eligible || false,
+          is_academy_student: (editRecord as Student).is_academy_student || false
         });
       } else {
         setRole(initialRole);
@@ -121,7 +125,9 @@ export default function AdmissionModal({
           boarding: false,
           admission_date: new Date().toISOString().split('T')[0],
           assigned_teacher_id: '',
-          assigned_teacher_name: ''
+          assigned_teacher_name: '',
+          is_zakat_eligible: false,
+          is_academy_student: false
         });
       }
     }
@@ -533,17 +539,48 @@ export default function AdmissionModal({
                   />
                 </div>
 
-                <div className="sm:col-span-2 flex items-center gap-2 p-3 bg-[#FDF6E3] rounded-lg border border-[#145A32]/20">
-                  <input
-                    type="checkbox"
-                    id="boarding"
-                    checked={formData.boarding}
-                    onChange={(e) => setFormData({ ...formData, boarding: e.target.checked })}
-                    className="rounded border-gray-300 text-[#145A32] focus:ring-[#145A32] w-4 h-4 cursor-pointer"
-                  />
-                  <label htmlFor="boarding" className="text-xs font-bold text-gray-800 cursor-pointer">
-                    Hostel & Boarding Accommodation Required
-                  </label>
+                {/* Additional Student Status Checkboxes */}
+                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-[#FDF6E3] rounded-xl border border-[#145A32]/20">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="boarding"
+                      checked={formData.boarding}
+                      onChange={(e) => setFormData({ ...formData, boarding: e.target.checked })}
+                      className="rounded border-gray-300 text-[#145A32] focus:ring-[#145A32] w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor="boarding" className="text-xs font-bold text-gray-800 cursor-pointer">
+                      Hostel Boarder
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="zakat_eligible"
+                      checked={formData.is_zakat_eligible}
+                      onChange={(e) => setFormData({ ...formData, is_zakat_eligible: e.target.checked })}
+                      className="rounded border-gray-300 text-[#145A32] focus:ring-[#145A32] w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor="zakat_eligible" className="text-xs font-bold text-[#145A32] cursor-pointer flex items-center gap-1">
+                      <HeartHandshake className="w-3.5 h-3.5 text-amber-600" />
+                      Zakat Eligible (مستحق زکوۃ)
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="academy_student"
+                      checked={formData.is_academy_student}
+                      onChange={(e) => setFormData({ ...formData, is_academy_student: e.target.checked })}
+                      className="rounded border-gray-300 text-[#145A32] focus:ring-[#145A32] w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor="academy_student" className="text-xs font-bold text-blue-900 cursor-pointer flex items-center gap-1">
+                      <School className="w-3.5 h-3.5 text-blue-600" />
+                      Usmania Academy School
+                    </label>
+                  </div>
                 </div>
               </>
             ) : (

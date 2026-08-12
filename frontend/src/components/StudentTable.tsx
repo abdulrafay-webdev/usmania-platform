@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Student, getStudentPdfDownloadUrl, getStudentIdCardDownloadUrl } from '@/lib/api';
-import { Eye, FileDown, Home, BookOpen, Contact, UserCheck, Pencil, Trash2 } from 'lucide-react';
+import { Eye, FileDown, Home, BookOpen, UserCheck, Pencil, Trash2, HeartHandshake, School } from 'lucide-react';
 
 interface StudentTableProps {
   students: Student[];
@@ -74,7 +74,7 @@ export default function StudentTable({
               <th className="py-3.5 px-4">Father / Guardian</th>
               <th className="py-3.5 px-3">Class</th>
               <th className="py-3.5 px-4">Assigned Teacher</th>
-              <th className="py-3.5 px-3">Boarding</th>
+              <th className="py-3.5 px-3">Status Badges</th>
               <th className="py-3.5 px-4">Hijri Admission Date</th>
               <th className="py-3.5 px-4 text-right">Actions</th>
             </tr>
@@ -153,17 +153,31 @@ export default function StudentTable({
                     )}
                   </td>
 
-                  {/* Boarding */}
+                  {/* Status Badges: Boarder, Zakat Eligible, Usmania Academy */}
                   <td className="py-3 px-3">
-                    {student.boarding ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded border border-emerald-200">
-                        <Home className="w-3 h-3" /> Boarder
-                      </span>
-                    ) : (
-                      <span className="inline-block px-2 py-0.5 bg-gray-50 text-gray-600 text-xs font-medium rounded border border-gray-200">
-                        Day Scholar
-                      </span>
-                    )}
+                    <div className="flex flex-wrap gap-1 items-center">
+                      {student.boarding ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] font-semibold rounded border border-emerald-200" title="Hostel Boarder">
+                          <Home className="w-3 h-3" /> Boarder
+                        </span>
+                      ) : (
+                        <span className="inline-block px-1.5 py-0.5 bg-gray-50 text-gray-500 text-[11px] font-medium rounded border border-gray-200">
+                          Day Scholar
+                        </span>
+                      )}
+
+                      {student.is_zakat_eligible && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-800 text-[11px] font-bold rounded border border-amber-300" title="Eligible for Zakat (Mustahiq Zakat)">
+                          <HeartHandshake className="w-3 h-3 text-amber-600" /> Zakat
+                        </span>
+                      )}
+
+                      {student.is_academy_student && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-800 text-[11px] font-bold rounded border border-blue-200" title="Enrolled in Usmania Academy School">
+                          <School className="w-3 h-3 text-blue-600" /> Academy
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Hijri Date */}
@@ -201,16 +215,6 @@ export default function StudentTable({
                         rel="noreferrer"
                         className="p-1.5 text-gray-600 hover:text-[#145A32] hover:bg-[#FDF6E3] rounded-lg transition-colors"
                         title="Download Printable ID Card (Front & Back)"
-                      >
-                        <Contact className="w-4 h-4" />
-                      </a>
-
-                      <a
-                        href={getStudentPdfDownloadUrl(student.id)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1.5 text-gray-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
-                        title="Download Full Profile PDF"
                       >
                         <FileDown className="w-4 h-4" />
                       </a>

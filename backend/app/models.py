@@ -38,6 +38,10 @@ class Student(SQLModel, table=True):
     assigned_teacher_id: Optional[str] = Field(default=None)
     assigned_teacher_name: Optional[str] = Field(default="")
 
+    # New Checkbox Flags
+    is_zakat_eligible: bool = Field(default=False, description="Is student eligible for Zakat / Mustahiq Zakat")
+    is_academy_student: bool = Field(default=False, description="Is student also enrolled in Usmania Academy School")
+
 
 class StudentCreate(SQLModel):
     name: str
@@ -63,6 +67,9 @@ class StudentCreate(SQLModel):
     assigned_teacher_id: Optional[str] = None
     assigned_teacher_name: Optional[str] = ""
 
+    is_zakat_eligible: bool = False
+    is_academy_student: bool = False
+
 
 class StudentUpdate(SQLModel):
     name: Optional[str] = None
@@ -84,6 +91,9 @@ class StudentUpdate(SQLModel):
     father_guardian_name: Optional[str] = None
     assigned_teacher_id: Optional[str] = None
     assigned_teacher_name: Optional[str] = None
+
+    is_zakat_eligible: Optional[bool] = None
+    is_academy_student: Optional[bool] = None
 
 
 # ----------------- TEACHER SQLMODEL -----------------

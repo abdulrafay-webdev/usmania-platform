@@ -172,6 +172,10 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
         info_rows.append(fmt("Class / Grade", "student_class"))
         info_rows.append(fmt("Subject Enrolled", "subject"))
         info_rows.append(fmt("Boarding / Hostel", "boarding"))
+        info_rows.append(fmt("Zakat Eligible Status", "is_zakat_eligible"))
+        info_rows.append(fmt("Usmania Academy School", "is_academy_student"))
+        if record_data.get("assigned_teacher_name"):
+            info_rows.append([Paragraph("Assigned Teacher:", label_style), Paragraph(str(record_data.get("assigned_teacher_name")), ParagraphStyle('UT', parent=value_style, fontName='Helvetica-Bold', textColor=PRIMARY_GREEN))])
     else:
         info_rows.append(fmt("Subject Taught", "subject"))
 

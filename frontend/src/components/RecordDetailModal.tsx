@@ -9,7 +9,7 @@ import {
   getStudentIdCardDownloadUrl,
   getTeacherIdCardDownloadUrl
 } from '@/lib/api';
-import { X, FileDown, Building2, Calendar, MapPin, Mail, Phone, Home, Sparkles, Contact, UserCheck, Pencil, Trash2 } from 'lucide-react';
+import { X, FileDown, Building2, Calendar, MapPin, Mail, Phone, Home, Sparkles, Contact, UserCheck, Pencil, Trash2, HeartHandshake, School } from 'lucide-react';
 
 interface RecordDetailModalProps {
   record: Student | Teacher | null;
@@ -166,6 +166,34 @@ export default function RecordDetailModal({
                   <span className="text-sm font-semibold text-gray-900 mt-0.5 flex items-center gap-1.5">
                     <Home className="w-4 h-4 text-[#145A32]" />
                     {studentRec.boarding ? 'Hostel Boarder' : 'Day Scholar'}
+                  </span>
+                </div>
+
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
+                    Zakat Eligibility Status
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900 mt-0.5 flex items-center gap-1.5">
+                    <HeartHandshake className="w-4 h-4 text-amber-600" />
+                    {studentRec.is_zakat_eligible ? (
+                      <span className="text-amber-800 font-bold">Eligible for Zakat (مستحق زکوۃ)</span>
+                    ) : (
+                      <span className="text-gray-500">Not Zakat Eligible</span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
+                    Usmania Academy School
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900 mt-0.5 flex items-center gap-1.5">
+                    <School className="w-4 h-4 text-blue-600" />
+                    {studentRec.is_academy_student ? (
+                      <span className="text-blue-900 font-bold">Enrolled in Usmania Academy</span>
+                    ) : (
+                      <span className="text-gray-500">Not Enrolled</span>
+                    )}
                   </span>
                 </div>
               </>

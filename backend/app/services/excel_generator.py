@@ -20,13 +20,15 @@ def generate_records_excel(records: list[dict], record_type: str = "Student") ->
     if record_type == "Student":
         headers = [
             "Roll No", "Full Name", "Father / Guardian", "Class / Grade",
-            "Subject Enrolled", "Boarding", "CNIC / B-Form", "Email", "Contact",
+            "Subject Enrolled", "Boarding", "Zakat Eligible", "Usmania Academy School",
+            "Assigned Teacher", "CNIC / B-Form", "Email", "Contact",
             "Gender", "Date of Birth", "Admission Date", "Islamic (Hijri) Date",
             "Current Address", "Permanent Address", "City", "Country", "Institution", "Previous Institute"
         ]
         keys = [
             "roll_no", "name", "father_guardian_name", "student_class",
-            "subject", "boarding", "nic", "email", "contact",
+            "subject", "boarding", "is_zakat_eligible", "is_academy_student",
+            "assigned_teacher_name", "nic", "email", "contact",
             "gender", "dob", "admission_date", "islamic_date",
             "current_address", "permanent_address", "city", "country", "institution", "previous_institute"
         ]
@@ -89,7 +91,7 @@ def generate_records_excel(records: list[dict], record_type: str = "Student") ->
             cell.border = thin_border
             if row_num % 2 == 0:
                 cell.fill = zebra_fill
-            if k in ["roll_no", "dob", "admission_date", "gender", "boarding"]:
+            if k in ["roll_no", "dob", "admission_date", "gender", "boarding", "is_zakat_eligible", "is_academy_student"]:
                 cell.alignment = Alignment(horizontal="center", vertical="center")
 
     # Auto-fit column widths
