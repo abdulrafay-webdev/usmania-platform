@@ -207,16 +207,30 @@ def get_kind_donation(donation_id: str, session: Session = Depends(get_session))
 @router.post("/loans", response_model=Loan, status_code=201)
 def create_loan(payload: LoanCreate, session: Session = Depends(get_session)):
     l_date = payload.date_taken or date.today()
+    recv_acct = payload.received_in_account or "Cash"
 
     loan = Loan(
         lender_name=payload.lender_name,
         amount_taken=payload.amount_taken,
         date_taken=l_date,
+        received_in_account=recv_acct,
         purpose=payload.purpose or "",
         status="Active",
         notes=payload.notes or ""
     )
     session.add(loan)
+
+    # Auto-create corresponding ReceivedEntry so account balance and grand total increase
+    received = ReceivedEntry(
+        date=l_date,
+        entry_type="Income",
+        mode="Cash" if recv_acct == "Cash" else "Online",
+        account=recv_acct,
+        amount=payload.amount_taken,
+        payer_name=f"Loan from {payload.lender_name}",
+        purpose_note=f"Loan taken for {payload.purpose}" if payload.purpose else f"Loan taken from {payload.lender_name}"
+    )
+    session.add(received)
     session.commit()
     session.refresh(loan)
     return loan

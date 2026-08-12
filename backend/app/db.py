@@ -23,7 +23,8 @@ def init_db():
                     "ALTER TABLE student ADD COLUMN assigned_teacher_id VARCHAR;",
                     "ALTER TABLE student ADD COLUMN assigned_teacher_name VARCHAR DEFAULT '';",
                     "ALTER TABLE student ADD COLUMN is_zakat_eligible BOOLEAN DEFAULT FALSE;",
-                    "ALTER TABLE student ADD COLUMN is_academy_student BOOLEAN DEFAULT FALSE;"
+                    "ALTER TABLE student ADD COLUMN is_academy_student BOOLEAN DEFAULT FALSE;",
+                    "ALTER TABLE loan ADD COLUMN received_in_account VARCHAR DEFAULT 'Cash';"
                 ]:
                     try:
                         session.exec(text(col_stmt))
@@ -35,6 +36,7 @@ def init_db():
                 session.exec(text("ALTER TABLE student ADD COLUMN IF NOT EXISTS assigned_teacher_name VARCHAR DEFAULT '';"))
                 session.exec(text("ALTER TABLE student ADD COLUMN IF NOT EXISTS is_zakat_eligible BOOLEAN DEFAULT FALSE;"))
                 session.exec(text("ALTER TABLE student ADD COLUMN IF NOT EXISTS is_academy_student BOOLEAN DEFAULT FALSE;"))
+                session.exec(text("ALTER TABLE loan ADD COLUMN IF NOT EXISTS received_in_account VARCHAR DEFAULT 'Cash';"))
             session.commit()
         except Exception:
             session.rollback()

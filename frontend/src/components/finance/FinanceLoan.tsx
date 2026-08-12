@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { getFinanceLoans, createFinanceLoan, getFinanceLoanDetail, addFinanceLoanPayment, Loan, LoanPayment } from '@/lib/api';
-import { Plus, Landmark, ChevronDown, ChevronUp, History, X, CheckCircle2, AlertCircle, ArrowDownRight } from 'lucide-react';
+import { Plus, Landmark, ChevronDown, ChevronUp, History, X, CheckCircle2, AlertCircle, ArrowDownRight, Sparkles } from 'lucide-react';
 
 export default function FinanceLoan() {
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -21,6 +21,7 @@ export default function FinanceLoan() {
     lender_name: '',
     amount_taken: '',
     date_taken: new Date().toISOString().split('T')[0],
+    received_in_account: 'Cash' as 'Cash' | 'JazzCash' | 'Easypaisa' | 'Meezan Bank',
     purpose: '',
     notes: ''
   });
@@ -89,6 +90,7 @@ export default function FinanceLoan() {
         lender_name: loanFormData.lender_name,
         amount_taken: parseFloat(loanFormData.amount_taken),
         date_taken: loanFormData.date_taken,
+        received_in_account: loanFormData.received_in_account,
         purpose: loanFormData.purpose,
         notes: loanFormData.notes
       });
@@ -97,6 +99,7 @@ export default function FinanceLoan() {
         lender_name: '',
         amount_taken: '',
         date_taken: new Date().toISOString().split('T')[0],
+        received_in_account: 'Cash',
         purpose: '',
         notes: ''
       });
@@ -161,7 +164,7 @@ export default function FinanceLoan() {
             <Landmark className="w-5 h-5 text-amber-700" /> Loans & Qarz-e-Hasna Management
           </h2>
           <p className="text-xs text-gray-500 font-medium">
-            Track borrowed funds, repayment schedules, linked account debits, and remaining loan balances
+            Track borrowed funds, account deposits, repayments, and remaining loan balances
           </p>
         </div>
 
@@ -203,6 +206,7 @@ export default function FinanceLoan() {
                   <th className="py-3 px-4 w-8"></th>
                   <th className="py-3 px-4">Date Taken</th>
                   <th className="py-3 px-4">Lender / Creditor</th>
+                  <th className="py-3 px-3">Deposit Account</th>
                   <th className="py-3 px-4">Amount Taken</th>
                   <th className="py-3 px-4">Total Paid</th>
                   <th className="py-3 px-4">Remaining Balance</th>
@@ -228,6 +232,11 @@ export default function FinanceLoan() {
                         <td className="py-3 px-4">
                           <div className="font-bold text-gray-900">{item.lender_name}</div>
                           {item.purpose && <div className="text-[11px] text-gray-400">{item.purpose}</div>}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-800 font-mono text-xs font-semibold rounded">
+                            {item.received_in_account || 'Cash'}
+                          </span>
                         </td>
                         <td className="py-3 px-4 font-mono font-semibold text-gray-900">
                           PKR {item.amount_taken.toLocaleString('en-PK')}
@@ -261,7 +270,7 @@ export default function FinanceLoan() {
                       {/* Expandable Repayment History Row */}
                       {isExpanded && (
                         <tr>
-                          <td colSpan={8} className="bg-gray-50/90 p-4 border-b border-gray-200">
+                          <td colSpan={9} className="bg-gray-50/90 p-4 border-b border-gray-200">
                             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs space-y-3">
                               <div className="flex items-center justify-between">
                                 <h4 className="text-xs font-bold text-[#145A32] uppercase tracking-wider flex items-center gap-1.5">
@@ -344,6 +353,25 @@ export default function FinanceLoan() {
                   placeholder="Haji Abdul Rehman / Seth Mahmood"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
                 />
+              </div>
+
+              {/* Account where loan is deposited */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Deposit Received In Account *</label>
+                <select
+                  value={loanFormData.received_in_account}
+                  onChange={(e) => setLoanFormData({ ...loanFormData, received_in_account: e.target.value as any })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                >
+                  <option value="Cash">Cash Account</option>
+                  <option value="JazzCash">JazzCash</option>
+                  <option value="Easypaisa">Easypaisa</option>
+                  <option value="Meezan Bank">Meezan Bank</option>
+                </select>
+                <span className="text-[11px] text-[#145A32] font-semibold mt-1 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-[#145A32]" />
+                  Loan amount will automatically deposit into this account and increase Grand Total!
+                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

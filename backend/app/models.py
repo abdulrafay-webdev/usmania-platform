@@ -264,6 +264,7 @@ class Loan(SQLModel, table=True):
     lender_name: str = Field(default="")
     amount_taken: float = Field(default=0.0)
     date_taken: date_type = Field(default_factory=date_type.today)
+    received_in_account: str = Field(default="Cash", description="Cash, JazzCash, Easypaisa, Meezan Bank")
     purpose: str = Field(default="")
     status: str = Field(default="Active", description="Active or Fully Paid")
     notes: Optional[str] = Field(default="")
@@ -273,6 +274,7 @@ class LoanCreate(SQLModel):
     lender_name: str
     amount_taken: float
     date_taken: Optional[date_type] = None
+    received_in_account: str = "Cash"
     purpose: str = ""
     notes: Optional[str] = ""
 

@@ -105,6 +105,7 @@ export interface Loan {
   lender_name: string;
   amount_taken: number;
   date_taken: string;
+  received_in_account?: string;
   purpose: string;
   status: 'Active' | 'Fully Paid' | string;
   notes?: string;
