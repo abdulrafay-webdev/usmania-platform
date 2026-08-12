@@ -51,6 +51,115 @@ export interface Teacher {
   father_guardian_name?: string;
 }
 
+// ----------------- FINANCE INTERFACES -----------------
+export interface ReceivedEntry {
+  id: string;
+  date: string;
+  entry_type: 'Income' | 'Donation' | string;
+  mode: 'Cash' | 'Online' | string;
+  account: 'Cash' | 'JazzCash' | 'Easypaisa' | 'Meezan Bank' | string;
+  amount: number;
+  payer_name: string;
+  payer_contact?: string;
+  payer_address?: string;
+  purpose_note?: string;
+  created_at: string;
+}
+
+export interface DebitEntry {
+  id: string;
+  date: string;
+  account: 'Cash' | 'JazzCash' | 'Easypaisa' | 'Meezan Bank' | string;
+  amount: number;
+  paid_to: string;
+  purpose: string;
+  created_at: string;
+}
+
+export interface KindDonation {
+  id: string;
+  date: string;
+  item_name: string;
+  category: 'Furniture' | 'Food' | 'Clothing' | 'Books' | 'Other' | string;
+  quantity: number;
+  estimated_value?: number;
+  donor_name: string;
+  donor_contact?: string;
+  condition?: 'New' | 'Used' | string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface LoanPayment {
+  id: string;
+  loan_id: string;
+  amount_paid: number;
+  date_paid: string;
+  paid_from_account: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface Loan {
+  id: string;
+  lender_name: string;
+  amount_taken: number;
+  date_taken: string;
+  purpose: string;
+  status: 'Active' | 'Fully Paid' | string;
+  notes?: string;
+  total_paid?: number;
+  remaining_balance?: number;
+  payments?: LoanPayment[];
+  created_at: string;
+}
+
+export interface AccountBalancesResponse {
+  accounts: {
+    Cash: number;
+    JazzCash: number;
+    Easypaisa: number;
+    'Meezan Bank': number;
+  };
+  grand_total: number;
+}
+
+export interface DashboardSummaryResponse {
+  grand_total_balance: number;
+  account_balances: {
+    Cash: number;
+    JazzCash: number;
+    Easypaisa: number;
+    'Meezan Bank': number;
+  };
+  today_received: number;
+  today_debit: number;
+  today_net: number;
+  active_loan_remaining: number;
+  chart_income_vs_expense: Array<{ date: string; Income: number; Expense: number }>;
+  chart_account_pie: Array<{ name: string; value: number }>;
+  chart_received_split: Array<{ type: string; amount: number }>;
+  chart_debit_categories: Array<{ category: string; amount: number }>;
+  chart_kind_donations: Array<{ category: string; count: number; value: number }>;
+  loan_overviews: Array<{
+    lender_name: string;
+    amount_taken: number;
+    total_paid: number;
+    remaining: number;
+    status: string;
+  }>;
+  recent_transactions: Array<{
+    id: string;
+    type: 'Received' | 'Debit' | 'Kind' | string;
+    title: string;
+    sub: string;
+    amount: number;
+    date: string;
+    created_at: string;
+    color: string;
+  }>;
+}
+
 export type StudentCreatePayload = Omit<Student, 'id' | 'roll_no' | 'islamic_date'>;
 export type TeacherCreatePayload = Omit<Teacher, 'id' | 'roll_no' | 'islamic_date'>;
 
@@ -233,4 +342,149 @@ export async function exportSelectedExcel(type: 'students' | 'teachers', ids: st
   a.click();
   a.remove();
   window.URL.revokeObjectURL(url);
+}
+
+// ----------------- FINANCE API FUNCTIONS -----------------
+
+// 1. Received Entries
+export async function getFinanceReceived(filters?: {
+  date_from?: string;
+  date_to?: string;
+  entry_type?: string;
+  account?: string;
+  q?: string;
+}): Promise<ReceivedEntry[]> {
+  const params = new URLSearchParams();
+  if (filters?.date_from) params.append('date_from', filters.date_from);
+  if (filters?.date_to) params.append('date_to', filters.date_to);
+  if (filters?.entry_type) params.append('entry_type', filters.entry_type);
+  if (filters?.account) params.append('account', filters.account);
+  if (filters?.q) params.append('q', filters.q);
+
+  const res = await fetch(`${API_BASE_URL}/api/finance/received?${params.toString()}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch received entries');
+  return res.json();
+}
+
+export async function createFinanceReceived(payload: Partial<ReceivedEntry>): Promise<ReceivedEntry> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/received`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to create received entry');
+  }
+  return res.json();
+}
+
+// 2. Debit Entries
+export async function getFinanceDebit(filters?: {
+  date_from?: string;
+  date_to?: string;
+  account?: string;
+  q?: string;
+}): Promise<DebitEntry[]> {
+  const params = new URLSearchParams();
+  if (filters?.date_from) params.append('date_from', filters.date_from);
+  if (filters?.date_to) params.append('date_to', filters.date_to);
+  if (filters?.account) params.append('account', filters.account);
+  if (filters?.q) params.append('q', filters.q);
+
+  const res = await fetch(`${API_BASE_URL}/api/finance/debit?${params.toString()}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch debit entries');
+  return res.json();
+}
+
+export async function createFinanceDebit(payload: Partial<DebitEntry>): Promise<DebitEntry> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/debit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to create debit entry');
+  }
+  return res.json();
+}
+
+// 3. Kind Donations
+export async function getFinanceKindDonations(filters?: {
+  category?: string;
+  q?: string;
+}): Promise<KindDonation[]> {
+  const params = new URLSearchParams();
+  if (filters?.category) params.append('category', filters.category);
+  if (filters?.q) params.append('q', filters.q);
+
+  const res = await fetch(`${API_BASE_URL}/api/finance/kind-donation?${params.toString()}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch in-kind donations');
+  return res.json();
+}
+
+export async function createFinanceKindDonation(payload: Partial<KindDonation>): Promise<KindDonation> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/kind-donation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to create in-kind donation');
+  }
+  return res.json();
+}
+
+// 4. Loans & Payments
+export async function getFinanceLoans(): Promise<Loan[]> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/loans`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch loans');
+  return res.json();
+}
+
+export async function createFinanceLoan(payload: Partial<Loan>): Promise<Loan> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/loans`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to create loan record');
+  }
+  return res.json();
+}
+
+export async function getFinanceLoanDetail(loanId: string): Promise<Loan> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/loans/${loanId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch loan detail');
+  return res.json();
+}
+
+export async function addFinanceLoanPayment(loanId: string, payload: Partial<LoanPayment>): Promise<LoanPayment> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/loans/${loanId}/payments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to record loan payment');
+  }
+  return res.json();
+}
+
+// 5. Account Balances & Dashboard
+export async function getFinanceAccountBalances(): Promise<AccountBalancesResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/accounts/balances`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch account balances');
+  return res.json();
+}
+
+export async function getFinanceDashboardSummary(): Promise<DashboardSummaryResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/dashboard/summary`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch finance dashboard summary');
+  return res.json();
 }

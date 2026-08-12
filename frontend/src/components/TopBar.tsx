@@ -2,11 +2,12 @@
 
 import React from 'react';
 import { Search, Calendar, ShieldCheck, LogOut } from 'lucide-react';
+import { MainTabType } from './Sidebar';
 
 interface TopBarProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
-  activeTab: 'students' | 'teachers';
+  activeTab: MainTabType;
   userEmail?: string;
   onLogout?: () => void;
 }
@@ -25,6 +26,16 @@ export default function TopBar({
     day: 'numeric'
   });
 
+  const getPlaceholder = () => {
+    if (activeTab === 'students') return 'Search students by name, roll no, CNIC...';
+    if (activeTab === 'teachers') return 'Search teachers by name, roll no, subject...';
+    if (activeTab === 'finance-received') return 'Search received entries by payer name, note...';
+    if (activeTab === 'finance-debit') return 'Search debits by paid to, purpose...';
+    if (activeTab === 'finance-kind-donation') return 'Search in-kind items, donor name...';
+    if (activeTab === 'finance-loan') return 'Search loans by lender name...';
+    return 'Search Finance records...';
+  };
+
   return (
     <header className="h-16 bg-white border-b border-gray-200 fixed top-0 right-0 left-64 z-20 flex items-center justify-between px-6 shadow-xs">
       {/* Search Input */}
@@ -34,7 +45,7 @@ export default function TopBar({
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={`Search ${activeTab} by name, roll no, or CNIC...`}
+          placeholder={getPlaceholder()}
           className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#145A32]/30 focus:border-[#145A32] transition-all"
         />
         {searchQuery && (

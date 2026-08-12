@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import Sidebar from '@/components/Sidebar';
+import Sidebar, { MainTabType } from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
 import StudentTable from '@/components/StudentTable';
 import TeacherTable from '@/components/TeacherTable';
@@ -9,6 +9,14 @@ import AdmissionModal from '@/components/AdmissionModal';
 import RecordDetailModal from '@/components/RecordDetailModal';
 import BulkActionBar from '@/components/BulkActionBar';
 import LoginScreen from '@/components/LoginScreen';
+
+// Finance Components
+import FinanceDashboard from '@/components/finance/FinanceDashboard';
+import FinanceReceived from '@/components/finance/FinanceReceived';
+import FinanceDebit from '@/components/finance/FinanceDebit';
+import FinanceKindDonation from '@/components/finance/FinanceKindDonation';
+import FinanceLoan from '@/components/finance/FinanceLoan';
+
 import {
   Student,
   Teacher,
@@ -18,7 +26,7 @@ import {
   deleteTeacher,
   exportSelectedExcel
 } from '@/lib/api';
-import { GraduationCap, Users, UserPlus, RefreshCw } from 'lucide-react';
+import { GraduationCap, Users, UserPlus, RefreshCw, DollarSign } from 'lucide-react';
 
 export default function DashboardPage() {
   // Authentication State
@@ -26,7 +34,7 @@ export default function DashboardPage() {
   const [authChecking, setAuthChecking] = useState<boolean>(true);
   const [userEmail, setUserEmail] = useState<string>('usmaniatrust@gmail.com');
 
-  const [activeTab, setActiveTab] = useState<'students' | 'teachers'>('students');
+  const [activeTab, setActiveTab] = useState<MainTabType>('students');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Data states
@@ -64,15 +72,17 @@ export default function DashboardPage() {
     setAuthChecking(false);
   }, []);
 
-  // Fetch Data Function
+  // Fetch Data Function for Students / Teachers
   const loadData = useCallback(async () => {
     if (!isAuthenticated) return;
+    if (activeTab.startsWith('finance')) return; // Finance tabs load their own data internally
+
     setLoading(true);
     try {
       if (activeTab === 'students') {
         const data = await getStudents(searchQuery);
         setStudents(data);
-      } else {
+      } else if (activeTab === 'teachers') {
         const data = await getTeachers(searchQuery);
         setTeachers(data);
       }
@@ -134,7 +144,7 @@ export default function DashboardPage() {
   };
 
   // Open New Admission Modal
-  const handleOpenAdmissionModal = (type: 'student' | 'teacher' = activeTab === 'students' ? 'student' : 'teacher') => {
+  const handleOpenAdmissionModal = (type: 'student' | 'teacher' = activeTab === 'teachers' ? 'teacher' : 'student') => {
     setAdmissionRole(type);
     setEditRecord(null);
     setAdmissionModalOpen(true);
@@ -177,6 +187,7 @@ export default function DashboardPage() {
 
   // Export Selected to Excel
   const handleExportSelected = async () => {
+    if (activeTab !== 'students' && activeTab !== 'teachers') return;
     const ids = activeTab === 'students' ? selectedStudentIds : selectedTeacherIds;
     if (ids.length === 0) return;
 
@@ -204,7 +215,7 @@ export default function DashboardPage() {
   }
 
   const currentSelectedCount =
-    activeTab === 'students' ? selectedStudentIds.length : selectedTeacherIds.length;
+    activeTab === 'students' ? selectedStudentIds.length : activeTab === 'teachers' ? selectedTeacherIds.length : 0;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -234,50 +245,52 @@ export default function DashboardPage() {
       {/* Main Content Area */}
       <main className="ml-64 pt-16 p-8 min-h-[calc(100vh-4rem)]">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-2xs">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#FDF6E3] text-[#145A32] flex items-center justify-center border border-[#145A32]/20 shadow-2xs">
-                {activeTab === 'students' ? (
-                  <GraduationCap className="w-5 h-5" />
-                ) : (
-                  <Users className="w-5 h-5" />
-                )}
+          {/* Header Bar for Students / Teachers */}
+          {(activeTab === 'students' || activeTab === 'teachers') && (
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#FDF6E3] text-[#145A32] flex items-center justify-center border border-[#145A32]/20 shadow-2xs">
+                  {activeTab === 'students' ? (
+                    <GraduationCap className="w-5 h-5" />
+                  ) : (
+                    <Users className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold font-serif text-[#145A32] tracking-tight">
+                    {activeTab === 'students' ? 'Student Admissions Registry' : 'Faculty & Teachers Directory'}
+                  </h1>
+                  <p className="text-xs text-gray-500 font-medium">
+                    {activeTab === 'students'
+                      ? 'Manage student records, class enrollments, Hijri dates, PDF & ID Card exports'
+                      : 'Manage teacher profiles, subject assignments, registration, PDF & ID Card exports'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold font-serif text-[#145A32] tracking-tight">
-                  {activeTab === 'students' ? 'Student Admissions Registry' : 'Faculty & Teachers Directory'}
-                </h1>
-                <p className="text-xs text-gray-500 font-medium">
-                  {activeTab === 'students'
-                    ? 'Manage student records, class enrollments, Hijri dates, PDF & ID Card exports'
-                    : 'Manage teacher profiles, subject assignments, registration, PDF & ID Card exports'}
-                </p>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={loadData}
+                  className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5"
+                  title="Refresh Table"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  <span>Refresh</span>
+                </button>
+
+                <button
+                  onClick={() => handleOpenAdmissionModal(activeTab === 'students' ? 'student' : 'teacher')}
+                  className="px-4 py-2 bg-[#145A32] hover:bg-[#0E4124] text-[#FDF6E3] text-xs font-semibold rounded-lg shadow-sm transition-all duration-150 flex items-center gap-2"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>+ New {activeTab === 'students' ? 'Student' : 'Teacher'}</span>
+                </button>
               </div>
             </div>
+          )}
 
-            <div className="flex items-center gap-3">
-              <button
-                onClick={loadData}
-                className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5"
-                title="Refresh Table"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                <span>Refresh</span>
-              </button>
-
-              <button
-                onClick={() => handleOpenAdmissionModal(activeTab === 'students' ? 'student' : 'teacher')}
-                className="px-4 py-2 bg-[#145A32] hover:bg-[#0E4124] text-[#FDF6E3] text-xs font-semibold rounded-lg shadow-sm transition-all duration-150 flex items-center gap-2"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>+ New {activeTab === 'students' ? 'Student' : 'Teacher'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Active Data Table */}
-          {activeTab === 'students' ? (
+          {/* Render Active View */}
+          {activeTab === 'students' && (
             <StudentTable
               students={students}
               selectedIds={selectedStudentIds}
@@ -288,7 +301,9 @@ export default function DashboardPage() {
               onDeleteStudent={handleDeleteRecord}
               isLoading={loading}
             />
-          ) : (
+          )}
+
+          {activeTab === 'teachers' && (
             <TeacherTable
               teachers={teachers}
               selectedIds={selectedTeacherIds}
@@ -300,19 +315,27 @@ export default function DashboardPage() {
               isLoading={loading}
             />
           )}
+
+          {activeTab === 'finance-dashboard' && <FinanceDashboard />}
+          {activeTab === 'finance-received' && <FinanceReceived />}
+          {activeTab === 'finance-debit' && <FinanceDebit />}
+          {activeTab === 'finance-kind-donation' && <FinanceKindDonation />}
+          {activeTab === 'finance-loan' && <FinanceLoan />}
         </div>
       </main>
 
-      {/* Floating Bulk Action Bar */}
-      <BulkActionBar
-        selectedCount={currentSelectedCount}
-        onExportExcel={handleExportSelected}
-        onClearSelection={() => {
-          if (activeTab === 'students') setSelectedStudentIds([]);
-          else setSelectedTeacherIds([]);
-        }}
-        isExporting={isExporting}
-      />
+      {/* Floating Bulk Action Bar (for Students & Teachers) */}
+      {(activeTab === 'students' || activeTab === 'teachers') && (
+        <BulkActionBar
+          selectedCount={currentSelectedCount}
+          onExportExcel={handleExportSelected}
+          onClearSelection={() => {
+            if (activeTab === 'students') setSelectedStudentIds([]);
+            else setSelectedTeacherIds([]);
+          }}
+          isExporting={isExporting}
+        />
+      )}
 
       {/* Admission / Edit Modal */}
       <AdmissionModal

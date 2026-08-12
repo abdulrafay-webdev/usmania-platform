@@ -1,12 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import TrustLogo from './TrustLogo';
-import { Users, GraduationCap, UserPlus, Building2, LogOut } from 'lucide-react';
+import { Users, GraduationCap, UserPlus, Building2, LogOut, DollarSign, LayoutDashboard, ArrowUpRight, ArrowDownRight, Gift, Landmark, ChevronDown, ChevronRight } from 'lucide-react';
+
+export type MainTabType = 'students' | 'teachers' | 'finance-dashboard' | 'finance-received' | 'finance-debit' | 'finance-kind-donation' | 'finance-loan';
 
 interface SidebarProps {
-  activeTab: 'students' | 'teachers';
-  onTabChange: (tab: 'students' | 'teachers') => void;
+  activeTab: MainTabType;
+  onTabChange: (tab: MainTabType) => void;
   onOpenAdmissionModal: (type?: 'student' | 'teacher') => void;
   onLogout: () => void;
   studentCount?: number;
@@ -23,8 +25,11 @@ export default function Sidebar({
   teacherCount = 0,
   userEmail = 'usmaniatrust@gmail.com'
 }: SidebarProps) {
+  const isFinanceActive = activeTab.startsWith('finance');
+  const [financeExpanded, setFinanceExpanded] = useState(true);
+
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 h-screen fixed left-0 top-0 flex flex-col justify-between z-30 shadow-xs">
+    <aside className="w-64 bg-white border-r border-gray-200 h-screen fixed left-0 top-0 flex flex-col justify-between z-30 shadow-xs overflow-y-auto">
       <div>
         {/* Top Header */}
         <div className="p-5 border-b border-gray-100 bg-[#FAF5EA]/50">
@@ -34,7 +39,7 @@ export default function Sidebar({
         {/* Action Button */}
         <div className="p-4">
           <button
-            onClick={() => onOpenAdmissionModal(activeTab === 'students' ? 'student' : 'teacher')}
+            onClick={() => onOpenAdmissionModal(activeTab === 'teachers' ? 'teacher' : 'student')}
             className="w-full py-2.5 px-4 bg-[#145A32] hover:bg-[#0E4124] text-white font-medium rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all duration-150 active:scale-[0.98] text-sm"
           >
             <UserPlus className="w-4 h-4" />
@@ -44,6 +49,7 @@ export default function Sidebar({
 
         {/* Navigation Tabs */}
         <nav className="px-3 space-y-1">
+          {/* Students Tab */}
           <button
             onClick={() => onTabChange('students')}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg font-medium text-sm transition-all ${
@@ -67,6 +73,7 @@ export default function Sidebar({
             </span>
           </button>
 
+          {/* Teachers Tab */}
           <button
             onClick={() => onTabChange('teachers')}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg font-medium text-sm transition-all ${
@@ -89,6 +96,92 @@ export default function Sidebar({
               {teacherCount}
             </span>
           </button>
+
+          {/* Finance Top-Level Section */}
+          <div className="pt-2">
+            <button
+              onClick={() => {
+                setFinanceExpanded(!financeExpanded);
+                if (!isFinanceActive) onTabChange('finance-dashboard');
+              }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                isFinanceActive
+                  ? 'bg-[#145A32] text-white shadow-xs'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <DollarSign className={`w-4 h-4 ${isFinanceActive ? 'text-white' : 'text-[#145A32]'}`} />
+                <span className="font-bold">Finance Module</span>
+              </div>
+              {financeExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </button>
+
+            {/* Sub-links */}
+            {financeExpanded && (
+              <div className="mt-1 ml-3 pl-3 border-l-2 border-[#145A32]/20 space-y-1">
+                <button
+                  onClick={() => onTabChange('finance-dashboard')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                    activeTab === 'finance-dashboard'
+                      ? 'bg-[#FDF6E3] text-[#145A32] font-bold border border-[#145A32]/30'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span>Dashboard</span>
+                </button>
+
+                <button
+                  onClick={() => onTabChange('finance-received')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                    activeTab === 'finance-received'
+                      ? 'bg-[#FDF6E3] text-[#145A32] font-bold border border-[#145A32]/30'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Received</span>
+                </button>
+
+                <button
+                  onClick={() => onTabChange('finance-debit')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                    activeTab === 'finance-debit'
+                      ? 'bg-[#FDF6E3] text-[#145A32] font-bold border border-[#145A32]/30'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <ArrowDownRight className="w-3.5 h-3.5 text-red-600" />
+                  <span>Debit</span>
+                </button>
+
+                <button
+                  onClick={() => onTabChange('finance-kind-donation')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                    activeTab === 'finance-kind-donation'
+                      ? 'bg-[#FDF6E3] text-[#145A32] font-bold border border-[#145A32]/30'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Gift className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Kind Donation</span>
+                </button>
+
+                <button
+                  onClick={() => onTabChange('finance-loan')}
+                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                    activeTab === 'finance-loan'
+                      ? 'bg-[#FDF6E3] text-[#145A32] font-bold border border-[#145A32]/30'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Landmark className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Loan (Qarz)</span>
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
       </div>
 
