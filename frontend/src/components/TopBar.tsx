@@ -29,6 +29,7 @@ export default function TopBar({
   const getPlaceholder = () => {
     if (activeTab === 'students') return 'Search students by name, roll no, CNIC...';
     if (activeTab === 'teachers') return 'Search teachers by name, roll no, subject...';
+    if (activeTab === 'donors') return 'Search donors by name, phone, email, city...';
     if (activeTab === 'finance-received') return 'Search received entries by payer name, note...';
     if (activeTab === 'finance-debit') return 'Search debits by paid to, purpose...';
     if (activeTab === 'finance-kind-donation') return 'Search in-kind items, donor name...';

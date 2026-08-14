@@ -9,6 +9,7 @@ import AdmissionModal from '@/components/AdmissionModal';
 import RecordDetailModal from '@/components/RecordDetailModal';
 import BulkActionBar from '@/components/BulkActionBar';
 import LoginScreen from '@/components/LoginScreen';
+import DonorDirectory from '@/components/DonorDirectory';
 
 // Finance Components
 import FinanceDashboard from '@/components/finance/FinanceDashboard';
@@ -26,7 +27,7 @@ import {
   deleteTeacher,
   exportSelectedExcel
 } from '@/lib/api';
-import { GraduationCap, Users, UserPlus, RefreshCw, DollarSign } from 'lucide-react';
+import { GraduationCap, Users, UserPlus, RefreshCw, DollarSign, Heart } from 'lucide-react';
 
 export default function DashboardPage() {
   // Authentication State
@@ -75,7 +76,7 @@ export default function DashboardPage() {
   // Fetch Data Function for Students / Teachers
   const loadData = useCallback(async () => {
     if (!isAuthenticated) return;
-    if (activeTab.startsWith('finance')) return; // Finance tabs load their own data internally
+    if (activeTab.startsWith('finance') || activeTab === 'donors') return; // Handled internally
 
     setLoading(true);
     try {
@@ -315,6 +316,8 @@ export default function DashboardPage() {
               isLoading={loading}
             />
           )}
+
+          {activeTab === 'donors' && <DonorDirectory />}
 
           {activeTab === 'finance-dashboard' && <FinanceDashboard />}
           {activeTab === 'finance-received' && <FinanceReceived />}

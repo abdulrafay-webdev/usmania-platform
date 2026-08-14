@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.db import init_db
-from app.routers import students, teachers, upload, auth, finance
+from app.routers import students, teachers, upload, auth, finance, donors
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -12,8 +12,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Jamia Usmania Trust — Madrasa Management API",
-    description="Backend API for managing Student & Teacher records, Finance Module, Hijri date conversion, PDF profile exports, and Excel bulk exports.",
-    version="1.1.0",
+    description="Backend API for managing Student & Teacher records, Finance Module, Donors Directory & Comments, Hijri date conversion, PDF profile exports, and Excel bulk exports.",
+    version="1.2.0",
     lifespan=lifespan
 )
 
@@ -31,6 +31,7 @@ app.include_router(auth.router)
 app.include_router(students.router)
 app.include_router(teachers.router)
 app.include_router(finance.router)
+app.include_router(donors.router)
 app.include_router(upload.router)
 
 @app.get("/")
@@ -38,7 +39,7 @@ def read_root():
     return {
         "status": "online",
         "app": "Jamia Usmania Trust Management API",
-        "version": "1.1.0",
+        "version": "1.2.0",
         "docs": "/docs"
     }
 

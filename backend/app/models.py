@@ -331,3 +331,49 @@ class LoanPaymentCreate(SQLModel):
     date_paid: Optional[date_type] = None
     paid_from_account: str
     notes: Optional[str] = ""
+
+
+# ----------------- DONOR & DONOR COMMENTS -----------------
+class Donor(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    name: str = Field(index=True)
+    contact: Optional[str] = Field(default="", index=True)
+    email: Optional[str] = Field(default="")
+    address: Optional[str] = Field(sa_column=Column(Text, default=""))
+    city: Optional[str] = Field(default="")
+    country: Optional[str] = Field(default="Pakistan")
+    category: Optional[str] = Field(default="Individual", description="Individual, Corporate, Foundation, Regular")
+    notes: Optional[str] = Field(default="")
+    created_at: datetime_type = Field(default_factory=datetime_type.now)
+
+class DonorCreate(SQLModel):
+    name: str
+    contact: Optional[str] = ""
+    email: Optional[str] = ""
+    address: Optional[str] = ""
+    city: Optional[str] = ""
+    country: Optional[str] = "Pakistan"
+    category: Optional[str] = "Individual"
+    notes: Optional[str] = ""
+
+class DonorUpdate(SQLModel):
+    name: Optional[str] = None
+    contact: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    category: Optional[str] = None
+    notes: Optional[str] = None
+
+class DonorComment(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    donor_id: str = Field(index=True)
+    donor_name: Optional[str] = Field(default="")
+    author_name: str = Field(description="Name of the person/admin/trustee who added the comment")
+    content: str = Field(description="Comment or follow-up remark")
+    created_at: datetime_type = Field(default_factory=datetime_type.now)
+
+class DonorCommentCreate(SQLModel):
+    author_name: str
+    content: str

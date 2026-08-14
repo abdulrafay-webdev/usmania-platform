@@ -168,6 +168,46 @@ export interface DashboardSummaryResponse {
   }>;
 }
 
+// ----------------- DONOR INTERFACES -----------------
+export interface DonorListItem {
+  id: string;
+  name: string;
+  contact: string;
+  email: string;
+  address: string;
+  city: string;
+  country: string;
+  category: 'Individual' | 'Corporate' | 'Foundation' | 'Regular' | string;
+  notes: string;
+  created_at: string;
+  total_cash_donated: number;
+  donations_count: number;
+  total_kind_donations: number;
+  total_kind_value: number;
+  latest_donation_date?: string | null;
+  comments_count: number;
+}
+
+export interface DonorComment {
+  id: string;
+  donor_id: string;
+  donor_name?: string;
+  author_name: string;
+  content: string;
+  created_at: string;
+}
+
+export interface DonorDetailResponse {
+  donor: DonorListItem;
+  total_cash_donated: number;
+  total_kind_value: number;
+  donations_count: number;
+  kind_count: number;
+  cash_donations: ReceivedEntry[];
+  kind_donations: KindDonation[];
+  comments: DonorComment[];
+}
+
 export type StudentCreatePayload = Omit<Student, 'id' | 'roll_no' | 'islamic_date'>;
 export type TeacherCreatePayload = Omit<Teacher, 'id' | 'roll_no' | 'islamic_date'>;
 
@@ -495,4 +535,82 @@ export async function getFinanceDashboardSummary(): Promise<DashboardSummaryResp
   const res = await fetch(`${API_BASE_URL}/api/finance/dashboard/summary`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch finance dashboard summary');
   return res.json();
+}
+
+// ----------------- DONORS & COMMENTS API -----------------
+export async function getDonors(query?: string): Promise<DonorListItem[]> {
+  const endpoint = query?.trim()
+    ? `${API_BASE_URL}/api/donors?q=${encodeURIComponent(query)}`
+    : `${API_BASE_URL}/api/donors`;
+  const res = await fetch(endpoint, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch donors list');
+  return res.json();
+}
+
+export async function getDonorDetail(donorId: string): Promise<DonorDetailResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/donors/${donorId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch donor details');
+  return res.json();
+}
+
+export async function createDonor(payload: Partial<DonorListItem>): Promise<DonorListItem> {
+  const res = await fetch(`${API_BASE_URL}/api/donors`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to register donor');
+  }
+  return res.json();
+}
+
+export async function updateDonor(donorId: string, payload: Partial<DonorListItem>): Promise<DonorListItem> {
+  const res = await fetch(`${API_BASE_URL}/api/donors/${donorId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to update donor');
+  }
+  return res.json();
+}
+
+export async function deleteDonor(donorId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/donors/${donorId}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to delete donor');
+  }
+}
+
+export async function addDonorComment(
+  donorId: string,
+  payload: { author_name: string; content: string }
+): Promise<DonorComment> {
+  const res = await fetch(`${API_BASE_URL}/api/donors/${donorId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to post comment');
+  }
+  return res.json();
+}
+
+export async function deleteDonorComment(donorId: string, commentId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/donors/${donorId}/comments/${commentId}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to delete comment');
+  }
 }

@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import TrustLogo from './TrustLogo';
-import { Users, GraduationCap, UserPlus, Building2, LogOut, DollarSign, LayoutDashboard, ArrowUpRight, ArrowDownRight, Gift, Landmark, ChevronDown, ChevronRight } from 'lucide-react';
+import { Users, GraduationCap, UserPlus, Building2, LogOut, DollarSign, LayoutDashboard, ArrowUpRight, ArrowDownRight, Gift, Landmark, ChevronDown, ChevronRight, Heart } from 'lucide-react';
 
-export type MainTabType = 'students' | 'teachers' | 'finance-dashboard' | 'finance-received' | 'finance-debit' | 'finance-kind-donation' | 'finance-loan';
+export type MainTabType = 'students' | 'teachers' | 'donors' | 'finance-dashboard' | 'finance-received' | 'finance-debit' | 'finance-kind-donation' | 'finance-loan';
 
 interface SidebarProps {
   activeTab: MainTabType;
@@ -94,6 +94,24 @@ export default function Sidebar({
               }`}
             >
               {teacherCount}
+            </span>
+          </button>
+
+          {/* Donors Tab */}
+          <button
+            onClick={() => onTabChange('donors')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg font-medium text-sm transition-all ${
+              activeTab === 'donors'
+                ? 'bg-[#145A32] text-white shadow-xs'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Heart className={`w-4 h-4 ${activeTab === 'donors' ? 'text-white fill-white/20' : 'text-[#145A32]'}`} />
+              <span>Donors Directory</span>
+            </div>
+            <span className="text-[10px] px-1.5 py-0.5 bg-emerald-50 text-emerald-800 font-bold rounded border border-emerald-200">
+              Directory
             </span>
           </button>
 
