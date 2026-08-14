@@ -6,16 +6,12 @@ import {
   X,
   Printer,
   Download,
-  ShieldCheck,
-  Building2,
-  Calendar,
-  Phone,
   CreditCard,
   Sparkles,
-  Layers,
-  Award
+  Globe,
+  Mail,
+  Phone
 } from 'lucide-react';
-import Image from 'next/image';
 
 interface IdCardModalProps {
   isOpen: boolean;
@@ -49,7 +45,7 @@ export default function IdCardModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
       <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-4xl overflow-hidden my-6 sm:my-8 animate-fadeIn">
-        {/* Header */}
+        {/* Modal Window Header */}
         <div className="bg-[#145A32] text-white px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white/10 flex items-center justify-center border border-white/20 shrink-0">
@@ -60,13 +56,12 @@ export default function IdCardModal({
                 {record.name} — Official ID Card
               </h3>
               <p className="text-[10px] sm:text-[11px] text-[#FDF6E3]/80 truncate">
-                CR80 Standard PVC Card Format (85.6mm × 54mm)
+                Standard CR80 PVC Format (85.6mm × 54mm) • White Header Edition
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* Direct PDF Download Link */}
             <a
               href={downloadUrl}
               target="_blank"
@@ -89,7 +84,7 @@ export default function IdCardModal({
         {/* View Switcher Tabs */}
         <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
           <span className="text-[11px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
-            Card Preview
+            Interactive Visual Card Preview
           </span>
 
           <div className="flex items-center gap-1 bg-gray-200 p-1 rounded-lg">
@@ -121,25 +116,28 @@ export default function IdCardModal({
         </div>
 
         {/* Card Stage / Display Area */}
-        <div className="p-4 sm:p-8 bg-[#F4F6F8] flex flex-wrap items-center justify-center gap-6 sm:gap-8 min-h-[300px] overflow-x-auto">
-          {/* ================= FRONT SIDE CARD ================= */}
+        <div className="p-4 sm:p-8 bg-[#F4F6F8] flex flex-wrap items-center justify-center gap-6 sm:gap-8 min-h-[340px] overflow-x-auto">
+          {/* ================= FRONT SIDE CARD (WHITE HEADER & BIGGER LOGO) ================= */}
           {(activeSide === 'both' || activeSide === 'front') && (
-            <div className="w-full max-w-[340px] sm:w-[360px] h-[228px] bg-white rounded-xl shadow-xl border border-gray-300 overflow-hidden flex flex-col justify-between relative transform hover:scale-[1.02] transition-transform duration-200 shrink-0">
-              {/* Front Header */}
-              <div className="bg-[#145A32] text-white px-3 py-2 flex items-center gap-2.5 border-b border-emerald-900">
-                <div className="w-8 h-8 rounded-full bg-white p-0.5 shadow-xs flex items-center justify-center shrink-0 border border-emerald-700">
+            <div className="w-full max-w-[340px] sm:w-[360px] h-[235px] bg-white rounded-xl shadow-xl border border-gray-300 overflow-hidden flex flex-col justify-between relative transform hover:scale-[1.02] transition-transform duration-200 shrink-0">
+              {/* Front Header: Clean White Background with Big Logo */}
+              <div className="bg-white px-3 py-2 flex items-center gap-2.5 border-b-2 border-[#145A32]">
+                <div className="w-11 h-11 flex items-center justify-center shrink-0">
                   <img
                     src="/images/logo.png"
                     alt="Jamia Usmania Logo"
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <div className="leading-none overflow-hidden">
-                  <h4 className="text-xs font-extrabold font-serif tracking-wide text-white truncate">
+                <div className="leading-tight overflow-hidden">
+                  <h4 className="text-[13px] font-extrabold font-serif tracking-tight text-[#145A32] truncate">
                     JAMIA USMANIA TRUST
                   </h4>
-                  <p className="text-[9px] font-bold text-[#FDF6E3] mt-0.5 tracking-wider uppercase truncate">
+                  <p className="text-[9px] font-bold text-amber-700 tracking-wider uppercase truncate">
                     OFFICIAL {isStudent ? 'STUDENT' : 'FACULTY'} IDENTITY CARD
+                  </p>
+                  <p className="text-[8px] font-semibold text-[#145A32] tracking-wide truncate">
+                    www.usmaniatrust.org
                   </p>
                 </div>
               </div>
@@ -148,7 +146,7 @@ export default function IdCardModal({
               <div className="p-3 flex gap-3 flex-1 items-center bg-white">
                 {/* Left Photo Column */}
                 <div className="flex flex-col items-center shrink-0 w-20">
-                  <div className="w-20 h-24 bg-gray-100 rounded-md border border-[#145A32] overflow-hidden flex items-center justify-center shadow-2xs">
+                  <div className="w-20 h-24 bg-gray-50 rounded-md border border-[#145A32] overflow-hidden flex items-center justify-center shadow-2xs">
                     {record.picture ? (
                       <img
                         src={record.picture}
@@ -212,72 +210,90 @@ export default function IdCardModal({
               </div>
 
               {/* Front Footer Strip */}
-              <div className="bg-gray-50 border-t border-[#145A32]/30 px-3 py-1 flex items-center justify-between text-[9px] text-[#145A32] font-semibold">
-                <span>www.usmaniatrust.org</span>
+              <div className="bg-[#FAF5EA]/80 border-t border-[#145A32]/20 px-3 py-1 flex items-center justify-between text-[9px] text-[#145A32] font-semibold">
+                <span className="flex items-center gap-1">
+                  <Globe className="w-2.5 h-2.5" /> www.usmaniatrust.org
+                </span>
                 <span className="text-gray-500">Valid: 2026–2027</span>
               </div>
             </div>
           )}
 
-          {/* ================= BACK SIDE CARD ================= */}
+          {/* ================= BACK SIDE CARD (LOGO WATERMARK & SPACIOUS SIGNATURE) ================= */}
           {(activeSide === 'both' || activeSide === 'back') && (
-            <div className="w-full max-w-[340px] sm:w-[360px] h-[228px] bg-[#FAF5EA] rounded-xl shadow-xl border border-gray-300 overflow-hidden flex flex-col justify-between relative transform hover:scale-[1.02] transition-transform duration-200 shrink-0">
-              {/* Back Header */}
-              <div className="bg-[#145A32] text-white px-3 py-2 flex items-center gap-2.5 border-b border-emerald-900">
-                <div className="w-8 h-8 rounded-full bg-white p-0.5 shadow-xs flex items-center justify-center shrink-0 border border-emerald-700">
+            <div className="w-full max-w-[340px] sm:w-[360px] h-[235px] bg-[#FAFCF8] rounded-xl shadow-xl border border-gray-300 overflow-hidden flex flex-col justify-between relative transform hover:scale-[1.02] transition-transform duration-200 shrink-0">
+              {/* Back Background Watermark */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none z-0">
+                <img
+                  src="/images/logo.png"
+                  alt="Watermark"
+                  className="w-36 h-36 object-contain"
+                />
+              </div>
+
+              {/* Back Header: Clean White Background with Logo */}
+              <div className="bg-white px-3 py-1.5 flex items-center gap-2 border-b-2 border-[#145A32] relative z-10">
+                <div className="w-8 h-8 flex items-center justify-center shrink-0">
                   <img
                     src="/images/logo.png"
                     alt="Jamia Usmania Logo"
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <div className="leading-none overflow-hidden">
-                  <h4 className="text-xs font-extrabold font-serif tracking-wide text-white truncate">
+                <div className="leading-tight overflow-hidden">
+                  <h4 className="text-xs font-extrabold font-serif tracking-tight text-[#145A32] truncate">
                     JAMIA USMANIA TRUST
                   </h4>
-                  <p className="text-[9px] font-bold text-[#FDF6E3] mt-0.5 tracking-wider uppercase truncate">
+                  <p className="text-[8.5px] font-bold text-amber-700 tracking-wider uppercase truncate">
                     CAMPUS RULES & INSTRUCTIONS
                   </p>
                 </div>
               </div>
 
-              {/* Back Body */}
-              <div className="p-3.5 space-y-1.5 flex-1 text-[10px] text-gray-700 leading-snug">
-                <div className="flex items-start gap-1.5">
+              {/* Back Body: Rules */}
+              <div className="p-3 space-y-1 flex-1 text-[9.5px] text-gray-700 leading-tight relative z-10">
+                <div className="flex items-start gap-1">
                   <span className="font-bold text-[#145A32]">1.</span>
-                  <span>This card must be worn and displayed inside campus premises at all times.</span>
+                  <span>This card must be displayed inside campus premises at all times.</span>
                 </div>
-                <div className="flex items-start gap-1.5">
+                <div className="flex items-start gap-1">
                   <span className="font-bold text-[#145A32]">2.</span>
-                  <span>Non-transferable. Property of Jamia Usmania Trust.</span>
+                  <span>Non-transferable. Official property of Jamia Usmania Trust.</span>
                 </div>
-                <div className="flex items-start gap-1.5">
+                <div className="flex items-start gap-1">
                   <span className="font-bold text-[#145A32]">3.</span>
                   <span>Report lost cards immediately to the administration office.</span>
                 </div>
-                <div className="flex items-start gap-1.5">
+                <div className="flex items-start gap-1">
                   <span className="font-bold text-[#145A32]">4.</span>
-                  <span>Helpline: +92 300 1234567 | info@jamiausmania.edu.pk</span>
+                  <span>
+                    Helpline: +92 300 1234567 | Email:{' '}
+                    <span className="font-bold text-[#145A32]">jamiausmaniatrust1994@gmail.com</span>
+                  </span>
+                </div>
+                <div className="flex items-start gap-1">
+                  <span className="font-bold text-[#145A32]">5.</span>
+                  <span>Official Website: www.usmaniatrust.org</span>
                 </div>
 
-                {/* Signature Box */}
-                <div className="pt-2 mt-2 border-t border-[#145A32]/20 flex items-center justify-between">
-                  <div className="text-[9px] text-gray-500">
-                    <div>Issued: {record.admission_date || '2026-01-01'}</div>
+                {/* Spacious Signature Area */}
+                <div className="pt-2 mt-1 border-t border-gray-300/80 flex items-end justify-between">
+                  <div className="text-[8.5px] text-gray-500 pb-0.5">
+                    <div>Issued: {record.admission_date || '2026–2027'}</div>
                     <div>Karachi, Pakistan</div>
                   </div>
 
-                  <div className="text-center">
-                    <div className="w-28 border-b border-gray-400 mb-0.5" />
+                  <div className="text-center pt-2">
+                    <div className="w-32 border-b-2 border-gray-500 mb-1" />
                     <span className="text-[8.5px] font-bold text-[#145A32] block">
-                      Authorized Trustee Seal
+                      Authorized Officer / Trustee Seal
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* Back Footer */}
-              <div className="bg-[#145A32] text-white text-[8px] text-center py-0.5 font-medium tracking-wide">
+              <div className="bg-[#145A32] text-white text-[8px] text-center py-0.5 font-medium tracking-wide relative z-10">
                 Jamia Usmania Trust • Islamic Education & Welfare Platform
               </div>
             </div>
@@ -287,8 +303,8 @@ export default function IdCardModal({
         {/* Modal Actions */}
         <div className="p-3 sm:p-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-[11px] sm:text-xs text-gray-500 flex items-center gap-1.5 text-center sm:text-left">
-            <Sparkles className="w-4 h-4 text-[#145A32] shrink-0" />
-            <span>Standard CR80 size ready for PVC plastic card or paper printing</span>
+            <Sparkles className="w-4 h-4 text-[#145A32]" />
+            <span>Standard CR80 Printable PDF with White Header & Watermark</span>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
@@ -306,7 +322,7 @@ export default function IdCardModal({
               className="px-4 sm:px-5 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 flex-1 sm:flex-initial"
             >
               <Printer className="w-4 h-4" />
-              <span>Print / Download PDF</span>
+              <span>Print / Download Printable PDF</span>
             </a>
           </div>
         </div>
