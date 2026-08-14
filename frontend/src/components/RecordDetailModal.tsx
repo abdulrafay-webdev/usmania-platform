@@ -9,7 +9,7 @@ import {
   getStudentIdCardDownloadUrl,
   getTeacherIdCardDownloadUrl
 } from '@/lib/api';
-import { X, FileDown, Building2, Calendar, MapPin, Mail, Phone, Home, Sparkles, Contact, UserCheck, Pencil, Trash2, HeartHandshake, School, BedDouble } from 'lucide-react';
+import { X, FileDown, Building2, Calendar, MapPin, Mail, Phone, Home, Sparkles, Contact, UserCheck, Pencil, Trash2, HeartHandshake, School, User, Users } from 'lucide-react';
 
 interface RecordDetailModalProps {
   record: Student | Teacher | null;
@@ -41,6 +41,10 @@ export default function RecordDetailModal({
   const idCardUrl = isStudent
     ? getStudentIdCardDownloadUrl(record.id)
     : getTeacherIdCardDownloadUrl(record.id);
+
+  const fatherName = isStudent
+    ? studentRec.father_name || studentRec.father_guardian_name || '—'
+    : teacherRec.father_guardian_name || '—';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs overflow-y-auto">
@@ -106,14 +110,43 @@ export default function RecordDetailModal({
         <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
           {/* Key Attributes Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Father's Name */}
             <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
-                Father / Guardian
+              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                <User className="w-3.5 h-3.5 text-[#145A32]" /> Father Name (والد کا نام)
               </span>
-              <span className="text-sm font-semibold text-gray-900 mt-0.5 block">
-                {record.father_guardian_name || '—'}
+              <span className="text-sm font-semibold text-gray-900 mt-1 block">
+                {fatherName}
               </span>
             </div>
+
+            {/* Guardian Name & Phone if Student */}
+            {isStudent ? (
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5 text-[#145A32]" /> Guardian Details (سرپرست)
+                </span>
+                <div className="text-xs text-gray-900 mt-1">
+                  <span className="font-semibold block text-sm">
+                    {studentRec.guardian_name || 'Same as father'}
+                  </span>
+                  {studentRec.guardian_contact && (
+                    <span className="text-gray-500 flex items-center gap-1 mt-0.5">
+                      <Phone className="w-3 h-3 text-[#145A32]" /> {studentRec.guardian_contact}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
+                  CNIC Number
+                </span>
+                <span className="text-sm font-mono font-semibold text-gray-900 mt-0.5 block">
+                  {record.nic || '—'}
+                </span>
+              </div>
+            )}
 
             <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
               <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
@@ -135,7 +168,7 @@ export default function RecordDetailModal({
 
             <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
               <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
-                Contact Phone & Email
+                Student Phone & Email
               </span>
               <div className="text-xs text-gray-900 mt-0.5 space-y-0.5">
                 <div className="flex items-center gap-1.5 font-semibold">

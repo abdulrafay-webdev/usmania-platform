@@ -89,6 +89,8 @@ export default function StudentTable({
                   : 'Boarder'
                 : 'Day Scholar';
 
+              const fatherDisp = student.father_name || student.father_guardian_name || '—';
+
               return (
                 <tr
                   key={student.id}
@@ -138,7 +140,12 @@ export default function StudentTable({
 
                   {/* Father / Guardian */}
                   <td className="py-3 px-4 text-gray-700 font-medium">
-                    {student.father_guardian_name || '—'}
+                    <div className="text-gray-900 font-semibold">{fatherDisp}</div>
+                    {student.guardian_name && (
+                      <div className="text-[11px] text-gray-500">
+                        Guardian: {student.guardian_name} {student.guardian_contact ? `(${student.guardian_contact})` : ''}
+                      </div>
+                    )}
                   </td>
 
                   {/* Class */}

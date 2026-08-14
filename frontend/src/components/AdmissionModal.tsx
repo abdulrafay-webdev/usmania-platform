@@ -11,7 +11,7 @@ import {
   Student,
   Teacher
 } from '@/lib/api';
-import { X, Upload, CheckCircle2, UserCheck, AlertCircle, Sparkles, Pencil, HeartHandshake, School, Home, BedDouble, ShieldAlert } from 'lucide-react';
+import { X, Upload, CheckCircle2, UserCheck, AlertCircle, Sparkles, Pencil, HeartHandshake, School, Home, BedDouble, ShieldAlert, Users, Phone } from 'lucide-react';
 
 interface AdmissionModalProps {
   isOpen: boolean;
@@ -42,6 +42,9 @@ export default function AdmissionModal({
   // Form State
   const [formData, setFormData] = useState({
     name: '',
+    father_name: '',
+    guardian_name: '',
+    guardian_contact: '',
     father_guardian_name: '',
     email: '',
     nic: '',
@@ -92,6 +95,9 @@ export default function AdmissionModal({
         const stud = editRecord as Student;
         setFormData({
           name: editRecord.name || '',
+          father_name: stud.father_name || editRecord.father_guardian_name || '',
+          guardian_name: stud.guardian_name || '',
+          guardian_contact: stud.guardian_contact || '',
           father_guardian_name: editRecord.father_guardian_name || '',
           email: editRecord.email || '',
           nic: editRecord.nic || '',
@@ -126,6 +132,9 @@ export default function AdmissionModal({
         setSelectedFile(null);
         setFormData({
           name: '',
+          father_name: '',
+          guardian_name: '',
+          guardian_contact: '',
           father_guardian_name: '',
           email: '',
           nic: '',
@@ -216,15 +225,17 @@ export default function AdmissionModal({
       }
 
       if (role === 'student') {
+        const payload = {
+          ...formData,
+          father_guardian_name: formData.father_name || formData.guardian_name || '',
+          picture: pictureUrl
+        };
+
         if (isEditing && editRecord) {
-          await updateStudent(editRecord.id, {
-            ...formData,
-            picture: pictureUrl
-          });
+          await updateStudent(editRecord.id, payload);
         } else {
           await createStudent({
-            ...formData,
-            picture: pictureUrl,
+            ...payload,
             admission_date: formData.admission_date
           });
         }
@@ -388,7 +399,7 @@ export default function AdmissionModal({
             {/* Full Name */}
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
-                Full Name <span className="text-red-500">*</span>
+                Student Full Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -400,20 +411,67 @@ export default function AdmissionModal({
               />
             </div>
 
-            {/* Father / Guardian Name */}
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">
-                Father / Guardian Name {role === 'student' && <span className="text-red-500">*</span>}
-              </label>
-              <input
-                type="text"
-                required={role === 'student'}
-                value={formData.father_guardian_name}
-                onChange={(e) => setFormData({ ...formData, father_guardian_name: e.target.value })}
-                placeholder="Tariq Mahmood"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
-              />
-            </div>
+            {/* If Student: Separate Father Name, Guardian Name, Guardian Contact */}
+            {role === 'student' ? (
+              <>
+                {/* Father Name */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Father Name (والد کا نام) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.father_name}
+                    onChange={(e) => setFormData({ ...formData, father_name: e.target.value })}
+                    placeholder="Tariq Mahmood"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                  />
+                </div>
+
+                {/* Guardian Name */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Guardian Name (سرپرست کا نام - اگر والد کے علاوہ ہو)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.guardian_name}
+                    onChange={(e) => setFormData({ ...formData, guardian_name: e.target.value })}
+                    placeholder="e.g. Abdul Rehman (Uncle / Relative)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                  />
+                </div>
+
+                {/* Guardian Contact Phone */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Guardian Phone (سرپرست کا رابطہ نمبر)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.guardian_contact}
+                    onChange={(e) => setFormData({ ...formData, guardian_contact: e.target.value })}
+                    placeholder="0300-9876543"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                  />
+                </div>
+              </>
+            ) : (
+              /* Teacher Father / Guardian Name */
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Father / Guardian Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.father_guardian_name}
+                  onChange={(e) => setFormData({ ...formData, father_guardian_name: e.target.value })}
+                  placeholder="Tariq Mahmood"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                />
+              </div>
+            )}
 
             {/* CNIC / B-Form */}
             <div>
@@ -477,7 +535,7 @@ export default function AdmissionModal({
             {/* Contact Phone */}
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
-                Contact Phone <span className="text-red-500">*</span>
+                Student Phone / Contact <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"

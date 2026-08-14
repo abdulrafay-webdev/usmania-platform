@@ -22,6 +22,9 @@ export interface Student {
   student_class: string;
   subject?: string;
   boarding: boolean;
+  father_name?: string;
+  guardian_name?: string;
+  guardian_contact?: string;
   father_guardian_name: string;
   assigned_teacher_id?: string;
   assigned_teacher_name?: string;

@@ -59,7 +59,12 @@ class Student(SQLModel, table=True):
     student_class: str = Field(default="Grade 1", description="Class or Grade e.g. Hifz, Tajweed, Alim")
     subject: Optional[str] = Field(default="")
     boarding: bool = Field(default=False)
-    father_guardian_name: str = Field(default="")
+    
+    # Parent & Guardian Details
+    father_name: Optional[str] = Field(default="", description="Father's Name")
+    guardian_name: Optional[str] = Field(default="", description="Guardian's Name")
+    guardian_contact: Optional[str] = Field(default="", description="Guardian's Phone Number")
+    father_guardian_name: Optional[str] = Field(default="")
 
     # Assigned Teacher link
     assigned_teacher_id: Optional[str] = Field(default=None)
@@ -96,7 +101,11 @@ class StudentCreate(SQLModel):
     student_class: str
     subject: Optional[str] = ""
     boarding: bool = False
-    father_guardian_name: str
+    
+    father_name: Optional[str] = ""
+    guardian_name: Optional[str] = ""
+    guardian_contact: Optional[str] = ""
+    father_guardian_name: Optional[str] = ""
 
     assigned_teacher_id: Optional[str] = None
     assigned_teacher_name: Optional[str] = ""
@@ -128,7 +137,12 @@ class StudentUpdate(SQLModel):
     student_class: Optional[str] = None
     subject: Optional[str] = None
     boarding: Optional[bool] = None
+    
+    father_name: Optional[str] = None
+    guardian_name: Optional[str] = None
+    guardian_contact: Optional[str] = None
     father_guardian_name: Optional[str] = None
+
     assigned_teacher_id: Optional[str] = None
     assigned_teacher_name: Optional[str] = None
 

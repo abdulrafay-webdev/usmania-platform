@@ -19,16 +19,16 @@ def generate_records_excel(records: list[dict], record_type: str = "Student") ->
     # Define headers based on record type
     if record_type == "Student":
         headers = [
-            "Roll No", "Full Name", "Father / Guardian", "Class / Grade",
-            "Subject Enrolled", "Boarding", "Room No", "Bed No",
+            "Roll No", "Full Name", "Father Name", "Guardian Name", "Guardian Phone",
+            "Class / Grade", "Subject Enrolled", "Boarding", "Room No", "Bed No",
             "Zakat Eligible", "Zakat Syed Status", "Usmania Academy School", "Academy Class",
-            "Assigned Teacher", "CNIC / B-Form", "Email", "Contact",
+            "Assigned Teacher", "CNIC / B-Form", "Email", "Student Contact",
             "Gender", "Date of Birth", "Admission Date", "Islamic (Hijri) Date",
             "Current Address", "Permanent Address", "City", "Country", "Institution", "Previous Institute"
         ]
         keys = [
-            "roll_no", "name", "father_guardian_name", "student_class",
-            "subject", "boarding", "hostel_room_no", "hostel_bed_no",
+            "roll_no", "name", "father_name", "guardian_name", "guardian_contact",
+            "student_class", "subject", "boarding", "hostel_room_no", "hostel_bed_no",
             "is_zakat_eligible", "zakat_syed_status", "is_academy_student", "academy_class",
             "assigned_teacher_name", "nic", "email", "contact",
             "gender", "dob", "admission_date", "islamic_date",
@@ -81,6 +81,9 @@ def generate_records_excel(records: list[dict], record_type: str = "Student") ->
         row_data = []
         for k in keys:
             val = rec.get(k, "")
+            # Fallback for father_name if empty but father_guardian_name is populated
+            if k == "father_name" and not val:
+                val = rec.get("father_guardian_name", "")
             if isinstance(val, bool):
                 val = "Yes" if val else "No"
             row_data.append(str(val) if val is not None else "")

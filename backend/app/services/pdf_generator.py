@@ -161,11 +161,22 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
 
     info_rows = []
     info_rows.append(fmt("Full Name", "name"))
-    info_rows.append(fmt("Father / Guardian Name", "father_guardian_name"))
+    
+    if record_type == "Student":
+        father_val = record_data.get("father_name") or record_data.get("father_guardian_name") or "N/A"
+        info_rows.append([Paragraph("Father Name:", label_style), Paragraph(str(father_val), value_style)])
+        if record_data.get("guardian_name") or record_data.get("guardian_contact"):
+            g_desc = f"{record_data.get('guardian_name', '—')}"
+            if record_data.get("guardian_contact"):
+                g_desc += f" (Phone: {record_data.get('guardian_contact')})"
+            info_rows.append([Paragraph("Guardian Details:", label_style), Paragraph(g_desc, value_style)])
+    else:
+        info_rows.append(fmt("Father / Guardian Name", "father_guardian_name"))
+
     info_rows.append(fmt("CNIC / B-Form", "nic"))
     info_rows.append(fmt("Gender", "gender"))
     info_rows.append(fmt("Date of Birth", "dob"))
-    info_rows.append(fmt("Contact Phone", "contact"))
+    info_rows.append(fmt("Student Contact", "contact"))
     info_rows.append(fmt("Email Address", "email"))
 
     if record_type == "Student":
@@ -209,8 +220,8 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
     info_table = Table(info_rows, colWidths=[1.8 * inch, 3.8 * inch])
     info_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
         ('LINEBELOW', (0, 0), (-1, -1), 0.5, LIGHT_GRAY),
     ]))
 
@@ -230,7 +241,7 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
         ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
     ]))
     story.append(main_grid)
-    story.append(Spacer(1, 0.15 * inch))
+    story.append(Spacer(1, 0.12 * inch))
 
     # 4. Institutional & Address Box
     add_rows = [
@@ -246,11 +257,11 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
         ('BACKGROUND', (0, 0), (-1, -1), LIGHT_GRAY),
         ('BOX', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('PADDING', (0, 0), (-1, -1), 5),
+        ('PADDING', (0, 0), (-1, -1), 4),
         ('LINEBELOW', (0, 0), (-1, -1), 0.5, colors.white),
     ]))
     story.append(add_table)
-    story.append(Spacer(1, 0.35 * inch))
+    story.append(Spacer(1, 0.25 * inch))
 
     # 5. Authorization & Verification Section
     sig_data = [
@@ -266,7 +277,7 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     story.append(sig_table)
-    story.append(Spacer(1, 0.2 * inch))
+    story.append(Spacer(1, 0.15 * inch))
 
     # Footer note
     footer_text = Paragraph(
