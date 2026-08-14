@@ -38,6 +38,7 @@ export default function DashboardPage() {
 
   const [activeTab, setActiveTab] = useState<MainTabType>('students');
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Data states
   const [students, setStudents] = useState<Student[]>([]);
@@ -234,7 +235,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Fixed Left Sidebar */}
+      {/* Sidebar with Mobile Drawer */}
       <Sidebar
         activeTab={activeTab}
         onTabChange={(tab) => {
@@ -246,25 +247,28 @@ export default function DashboardPage() {
         studentCount={students.length}
         teacherCount={teachers.length}
         userEmail={userEmail}
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
       />
 
-      {/* Fixed Top Bar */}
+      {/* Top Bar with Hamburger */}
       <TopBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         activeTab={activeTab}
         userEmail={userEmail}
         onLogout={handleLogout}
+        onMenuClick={() => setMobileMenuOpen(true)}
       />
 
-      {/* Main Content Area */}
-      <main className="ml-64 pt-16 p-8 min-h-[calc(100vh-4rem)]">
-        <div className="max-w-7xl mx-auto space-y-6">
+      {/* Main Content Area - Responsive margin & padding */}
+      <main className="ml-0 md:ml-64 pt-16 p-3 sm:p-5 md:p-8 min-h-[calc(100vh-4rem)] transition-all">
+        <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
           {/* Header Bar for Students / Teachers */}
           {(activeTab === 'students' || activeTab === 'teachers') && (
-            <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-2xs">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-2xs">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#FDF6E3] text-[#145A32] flex items-center justify-center border border-[#145A32]/20 shadow-2xs">
+                <div className="w-10 h-10 rounded-lg bg-[#FDF6E3] text-[#145A32] flex items-center justify-center border border-[#145A32]/20 shadow-2xs shrink-0">
                   {activeTab === 'students' ? (
                     <GraduationCap className="w-5 h-5" />
                   ) : (
@@ -272,10 +276,10 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold font-serif text-[#145A32] tracking-tight">
+                  <h1 className="text-base sm:text-xl font-bold font-serif text-[#145A32] tracking-tight">
                     {activeTab === 'students' ? 'Student Admissions Registry' : 'Faculty & Teachers Directory'}
                   </h1>
-                  <p className="text-xs text-gray-500 font-medium">
+                  <p className="text-[11px] sm:text-xs text-gray-500 font-medium">
                     {activeTab === 'students'
                       ? 'Manage student records, class enrollments, Hijri dates, PDF & ID Card exports'
                       : 'Manage teacher profiles, subject assignments, registration, PDF & ID Card exports'}
@@ -283,19 +287,19 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                 <button
                   onClick={loadData}
-                  className="p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5"
+                  className="p-2 sm:p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5"
                   title="Refresh Table"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                  <span>Refresh</span>
+                  <span className="hidden sm:inline">Refresh</span>
                 </button>
 
                 <button
                   onClick={() => handleOpenAdmissionModal(activeTab === 'students' ? 'student' : 'teacher')}
-                  className="px-4 py-2 bg-[#145A32] hover:bg-[#0E4124] text-[#FDF6E3] text-xs font-semibold rounded-lg shadow-sm transition-all duration-150 flex items-center gap-2"
+                  className="px-3.5 sm:px-4 py-2 bg-[#145A32] hover:bg-[#0E4124] text-[#FDF6E3] text-xs font-semibold rounded-lg shadow-sm transition-all duration-150 flex items-center gap-1.5 sm:gap-2 flex-1 sm:flex-initial justify-center"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>+ New {activeTab === 'students' ? 'Student' : 'Teacher'}</span>

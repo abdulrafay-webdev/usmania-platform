@@ -183,87 +183,87 @@ export default function DonorDirectory() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Top Banner & Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Card 1: Total Donors */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
               Total Donors
             </span>
-            <span className="text-2xl font-bold font-serif text-[#145A32] mt-1 block">
+            <span className="text-xl sm:text-2xl font-bold font-serif text-[#145A32] mt-1 block">
               {totalDonorsCount}
             </span>
             <span className="text-[11px] text-gray-400 font-medium">
               Registered & Active Donors
             </span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-[#FDF6E3] text-[#145A32] flex items-center justify-center shadow-inner">
-            <Heart className="w-6 h-6 fill-[#145A32]/20" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#FDF6E3] text-[#145A32] flex items-center justify-center shadow-inner shrink-0">
+            <Heart className="w-5 h-5 sm:w-6 sm:h-6 fill-[#145A32]/20" />
           </div>
         </div>
 
         {/* Card 2: Total Cash Raised */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
               Lifetime Cash Raised
             </span>
-            <span className="text-2xl font-bold font-mono text-emerald-800 mt-1 block">
+            <span className="text-xl sm:text-2xl font-bold font-mono text-emerald-800 mt-1 block">
               Rs. {totalCashRaised.toLocaleString()}
             </span>
             <span className="text-[11px] text-emerald-600 font-medium">
               From Finance Donation entries
             </span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-inner">
-            <Coins className="w-6 h-6" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-inner shrink-0">
+            <Coins className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
 
         {/* Card 3: Total In-Kind Items */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
               In-Kind Items Donated
             </span>
-            <span className="text-2xl font-bold font-serif text-blue-900 mt-1 block">
+            <span className="text-xl sm:text-2xl font-bold font-serif text-blue-900 mt-1 block">
               {totalKindItems} items
             </span>
             <span className="text-[11px] text-blue-600 font-medium">
               Physical goods & equipment
             </span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shadow-inner">
-            <Package className="w-6 h-6" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shadow-inner shrink-0">
+            <Package className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
 
         {/* Card 4: Total Comments Recorded */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
               Follow-up Comments
             </span>
-            <span className="text-2xl font-bold font-serif text-amber-900 mt-1 block">
+            <span className="text-xl sm:text-2xl font-bold font-serif text-amber-900 mt-1 block">
               {totalCommentsCount} notes
             </span>
             <span className="text-[11px] text-amber-700 font-medium">
               With author identity recorded
             </span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shadow-inner">
-            <MessageSquare className="w-6 h-6" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shadow-inner shrink-0">
+            <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </div>
       </div>
 
       {/* Control Bar: Search, Category Filter, and Add Donor Button */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3 flex-1">
+      <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-gray-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
           {/* Search Box */}
-          <div className="relative flex-1 min-w-[240px] max-w-md">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
             <input
               type="text"
@@ -274,13 +274,13 @@ export default function DonorDirectory() {
             />
           </div>
 
-          {/* Category Filter */}
-          <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200 text-xs font-bold">
+          {/* Category Filter Pills (Horizontal Scroll on mobile) */}
+          <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200 text-xs font-bold overflow-x-auto shrink-0">
             {['All', 'Individual', 'Corporate', 'Foundation', 'Regular'].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1 rounded-md transition-all ${
+                className={`px-2.5 sm:px-3 py-1 rounded-md transition-all whitespace-nowrap ${
                   selectedCategory === cat
                     ? 'bg-white text-[#145A32] shadow-xs'
                     : 'text-gray-600 hover:text-gray-900'
@@ -295,7 +295,7 @@ export default function DonorDirectory() {
         {/* Add Donor Button */}
         <button
           onClick={() => handleOpenForm()}
-          className="px-4 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Register New Donor</span>
@@ -498,12 +498,12 @@ export default function DonorDirectory() {
 
       {/* ----------------- MODAL 2: QUICK COMMENT MODAL ----------------- */}
       {quickCommentDonor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn my-6">
             <div className="bg-[#145A32] text-white p-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-[#FDF6E3]" />
-                <h3 className="text-base font-bold font-serif">
+                <h3 className="text-base font-bold font-serif truncate">
                   Add Comment for {quickCommentDonor.name}
                 </h3>
               </div>
@@ -515,7 +515,7 @@ export default function DonorDirectory() {
               </button>
             </div>
 
-            <form onSubmit={handleQuickCommentSubmit} className="p-5 space-y-4 text-xs">
+            <form onSubmit={handleQuickCommentSubmit} className="p-4 sm:p-5 space-y-4 text-xs">
               <div>
                 <label className="block font-bold text-gray-700 mb-1">
                   Comment Added By (آپ کا نام / عہدہ) <span className="text-red-500">*</span>
@@ -567,12 +567,12 @@ export default function DonorDirectory() {
 
       {/* ----------------- MODAL 3: REGISTER / EDIT DONOR MODAL ----------------- */}
       {isFormModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-xl overflow-hidden animate-fadeIn">
-            <div className="bg-[#145A32] text-white p-5 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-xl overflow-hidden animate-fadeIn my-6">
+            <div className="bg-[#145A32] text-white p-4 sm:p-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Heart className="w-5 h-5 text-[#FDF6E3]" />
-                <h3 className="text-base font-bold font-serif">
+                <h3 className="text-base font-bold font-serif truncate">
                   {editingDonor ? `Edit Donor Profile (${editingDonor.name})` : 'Register New Donor'}
                 </h3>
               </div>
@@ -585,14 +585,14 @@ export default function DonorDirectory() {
             </div>
 
             {formError && (
-              <div className="mx-6 mt-4 p-3 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center gap-2">
+              <div className="mx-4 sm:mx-6 mt-4 p-3 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
               </div>
             )}
 
-            <form onSubmit={handleFormSubmit} className="p-6 space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onSubmit={handleFormSubmit} className="p-4 sm:p-6 space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="sm:col-span-2">
                   <label className="block font-bold text-gray-700 mb-1">
                     Donor Full Name <span className="text-red-500">*</span>
@@ -688,7 +688,7 @@ export default function DonorDirectory() {
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="px-6 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white font-bold rounded-lg shadow-sm flex items-center gap-2 disabled:opacity-50"
+                  className="px-5 sm:px-6 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white font-bold rounded-lg shadow-sm flex items-center gap-2 disabled:opacity-50"
                 >
                   {formLoading ? 'Saving...' : editingDonor ? 'Update Profile' : 'Register Donor'}
                 </button>

@@ -47,34 +47,34 @@ export default function IdCardModal({
     : teacher?.father_guardian_name || 'N/A';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-4xl overflow-hidden my-8 animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-4xl overflow-hidden my-6 sm:my-8 animate-fadeIn">
         {/* Header */}
-        <div className="bg-[#145A32] text-white px-6 py-4 flex items-center justify-between">
+        <div className="bg-[#145A32] text-white px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center border border-white/20">
-              <CreditCard className="w-5 h-5 text-[#FDF6E3]" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white/10 flex items-center justify-center border border-white/20 shrink-0">
+              <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-[#FDF6E3]" />
             </div>
-            <div>
-              <h3 className="text-base font-bold font-serif">
+            <div className="overflow-hidden">
+              <h3 className="text-sm sm:text-base font-bold font-serif truncate">
                 {record.name} — Official ID Card
               </h3>
-              <p className="text-[11px] text-[#FDF6E3]/80">
+              <p className="text-[10px] sm:text-[11px] text-[#FDF6E3]/80 truncate">
                 CR80 Standard PVC Card Format (85.6mm × 54mm)
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Direct PDF Download Link */}
             <a
               href={downloadUrl}
               target="_blank"
               rel="noreferrer"
-              className="px-3.5 py-1.5 bg-[#FDF6E3] hover:bg-white text-[#145A32] rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
+              className="px-2.5 sm:px-3.5 py-1.5 bg-[#FDF6E3] hover:bg-white text-[#145A32] rounded-lg text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Download PDF</span>
+              <span className="hidden sm:inline">Download PDF</span>
             </a>
 
             <button
@@ -87,15 +87,15 @@ export default function IdCardModal({
         </div>
 
         {/* View Switcher Tabs */}
-        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-            Interactive Visual Card Preview
+        <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[11px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider">
+            Card Preview
           </span>
 
           <div className="flex items-center gap-1 bg-gray-200 p-1 rounded-lg">
             <button
               onClick={() => setActiveSide('both')}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+              className={`px-2.5 sm:px-3 py-1 text-xs font-bold rounded-md transition-all ${
                 activeSide === 'both' ? 'bg-white text-[#145A32] shadow-xs' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -103,7 +103,7 @@ export default function IdCardModal({
             </button>
             <button
               onClick={() => setActiveSide('front')}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+              className={`px-2.5 sm:px-3 py-1 text-xs font-bold rounded-md transition-all ${
                 activeSide === 'front' ? 'bg-white text-[#145A32] shadow-xs' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -111,7 +111,7 @@ export default function IdCardModal({
             </button>
             <button
               onClick={() => setActiveSide('back')}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+              className={`px-2.5 sm:px-3 py-1 text-xs font-bold rounded-md transition-all ${
                 activeSide === 'back' ? 'bg-white text-[#145A32] shadow-xs' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -121,10 +121,10 @@ export default function IdCardModal({
         </div>
 
         {/* Card Stage / Display Area */}
-        <div className="p-8 bg-[#F4F6F8] flex flex-wrap items-center justify-center gap-8 min-h-[380px]">
+        <div className="p-4 sm:p-8 bg-[#F4F6F8] flex flex-wrap items-center justify-center gap-6 sm:gap-8 min-h-[300px] overflow-x-auto">
           {/* ================= FRONT SIDE CARD ================= */}
           {(activeSide === 'both' || activeSide === 'front') && (
-            <div className="w-[360px] h-[228px] bg-white rounded-xl shadow-xl border border-gray-300 overflow-hidden flex flex-col justify-between relative transform hover:scale-[1.02] transition-transform duration-200">
+            <div className="w-full max-w-[340px] sm:w-[360px] h-[228px] bg-white rounded-xl shadow-xl border border-gray-300 overflow-hidden flex flex-col justify-between relative transform hover:scale-[1.02] transition-transform duration-200 shrink-0">
               {/* Front Header */}
               <div className="bg-[#145A32] text-white px-3 py-2 flex items-center gap-2.5 border-b border-emerald-900">
                 <div className="w-8 h-8 rounded-full bg-white p-0.5 shadow-xs flex items-center justify-center shrink-0 border border-emerald-700">
@@ -134,11 +134,11 @@ export default function IdCardModal({
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <div className="leading-none">
-                  <h4 className="text-xs font-extrabold font-serif tracking-wide text-white">
+                <div className="leading-none overflow-hidden">
+                  <h4 className="text-xs font-extrabold font-serif tracking-wide text-white truncate">
                     JAMIA USMANIA TRUST
                   </h4>
-                  <p className="text-[9px] font-bold text-[#FDF6E3] mt-0.5 tracking-wider uppercase">
+                  <p className="text-[9px] font-bold text-[#FDF6E3] mt-0.5 tracking-wider uppercase truncate">
                     OFFICIAL {isStudent ? 'STUDENT' : 'FACULTY'} IDENTITY CARD
                   </p>
                 </div>
@@ -221,7 +221,7 @@ export default function IdCardModal({
 
           {/* ================= BACK SIDE CARD ================= */}
           {(activeSide === 'both' || activeSide === 'back') && (
-            <div className="w-[360px] h-[228px] bg-[#FAF5EA] rounded-xl shadow-xl border border-gray-300 overflow-hidden flex flex-col justify-between relative transform hover:scale-[1.02] transition-transform duration-200">
+            <div className="w-full max-w-[340px] sm:w-[360px] h-[228px] bg-[#FAF5EA] rounded-xl shadow-xl border border-gray-300 overflow-hidden flex flex-col justify-between relative transform hover:scale-[1.02] transition-transform duration-200 shrink-0">
               {/* Back Header */}
               <div className="bg-[#145A32] text-white px-3 py-2 flex items-center gap-2.5 border-b border-emerald-900">
                 <div className="w-8 h-8 rounded-full bg-white p-0.5 shadow-xs flex items-center justify-center shrink-0 border border-emerald-700">
@@ -231,11 +231,11 @@ export default function IdCardModal({
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <div className="leading-none">
-                  <h4 className="text-xs font-extrabold font-serif tracking-wide text-white">
+                <div className="leading-none overflow-hidden">
+                  <h4 className="text-xs font-extrabold font-serif tracking-wide text-white truncate">
                     JAMIA USMANIA TRUST
                   </h4>
-                  <p className="text-[9px] font-bold text-[#FDF6E3] mt-0.5 tracking-wider uppercase">
+                  <p className="text-[9px] font-bold text-[#FDF6E3] mt-0.5 tracking-wider uppercase truncate">
                     CAMPUS RULES & INSTRUCTIONS
                   </p>
                 </div>
@@ -285,16 +285,16 @@ export default function IdCardModal({
         </div>
 
         {/* Modal Actions */}
-        <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-          <div className="text-xs text-gray-500 flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-[#145A32]" />
+        <div className="p-3 sm:p-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-[11px] sm:text-xs text-gray-500 flex items-center gap-1.5 text-center sm:text-left">
+            <Sparkles className="w-4 h-4 text-[#145A32] shrink-0" />
             <span>Standard CR80 size ready for PVC plastic card or paper printing</span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
             <button
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+              className="px-4 py-2 border border-gray-300 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-100 transition-colors flex-1 sm:flex-initial"
             >
               Close
             </button>
@@ -303,10 +303,10 @@ export default function IdCardModal({
               href={downloadUrl}
               target="_blank"
               rel="noreferrer"
-              className="px-5 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center gap-2"
+              className="px-4 sm:px-5 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 flex-1 sm:flex-initial"
             >
               <Printer className="w-4 h-4" />
-              <span>Print / Download Printable PDF</span>
+              <span>Print / Download PDF</span>
             </a>
           </div>
         </div>
