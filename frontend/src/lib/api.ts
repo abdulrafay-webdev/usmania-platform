@@ -6,7 +6,7 @@ export interface Student {
   roll_no: string;
   name: string;
   picture: string;
-  email: string;
+  email?: string;
   nic: string;
   dob: string;
   gender: 'Male' | 'Female' | string;
@@ -41,7 +41,7 @@ export interface Teacher {
   roll_no: string;
   name: string;
   picture: string;
-  email: string;
+  email?: string;
   nic: string;
   dob: string;
   gender: 'Male' | 'Female' | string;
@@ -535,6 +535,33 @@ export async function getFinanceDashboardSummary(): Promise<DashboardSummaryResp
   const res = await fetch(`${API_BASE_URL}/api/finance/dashboard/summary`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch finance dashboard summary');
   return res.json();
+}
+
+// 6. Comprehensive Finance Excel Export
+export async function exportFinanceExcel(date_from?: string, date_to?: string) {
+  const params = new URLSearchParams();
+  if (date_from) params.append('date_from', date_from);
+  if (date_to) params.append('date_to', date_to);
+
+  const endpoint = `${API_BASE_URL}/api/finance/export/excel?${params.toString()}`;
+  const res = await fetch(endpoint);
+  if (!res.ok) throw new Error('Failed to generate Finance Excel report');
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  
+  let periodLabel = 'All_Time';
+  if (date_from && date_to) periodLabel = `${date_from}_to_${date_to}`;
+  else if (date_from) periodLabel = `from_${date_from}`;
+  else if (date_to) periodLabel = `up_to_${date_to}`;
+
+  a.download = `Jamia_Usmania_Finance_Report_${periodLabel}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
 }
 
 // ----------------- DONORS & COMMENTS API -----------------

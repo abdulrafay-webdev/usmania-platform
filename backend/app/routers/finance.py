@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlmodel import Session, select, func, or_
 
 from app.db import get_session
@@ -11,6 +11,7 @@ from app.models import (
     Loan, LoanCreate,
     LoanPayment, LoanPaymentCreate
 )
+from app.services.excel_generator import generate_finance_excel
 
 router = APIRouter(prefix="/api/finance", tags=["Finance"])
 
@@ -489,3 +490,90 @@ def get_dashboard_summary(session: Session = Depends(get_session)):
         "loan_overviews": loan_overviews,
         "recent_transactions": recent_transactions
     }
+
+
+# ----------------- 6. COMPREHENSIVE FINANCE EXCEL EXPORT -----------------
+@router.get("/export/excel")
+def export_finance_excel(
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    session: Session = Depends(get_session)
+):
+    # 1. Query Received Entries in range
+    rec_stmt = select(ReceivedEntry).order_by(ReceivedEntry.date.desc())
+    if date_from:
+        rec_stmt = rec_stmt.where(ReceivedEntry.date >= date_from)
+    if date_to:
+        rec_stmt = rec_stmt.where(ReceivedEntry.date <= date_to)
+    received_entries = session.exec(rec_stmt).all()
+
+    # 2. Query Debit Entries in range
+    deb_stmt = select(DebitEntry).order_by(DebitEntry.date.desc())
+    if date_from:
+        deb_stmt = deb_stmt.where(DebitEntry.date >= date_from)
+    if date_to:
+        deb_stmt = deb_stmt.where(DebitEntry.date <= date_to)
+    debit_entries = session.exec(deb_stmt).all()
+
+    # 3. Query Kind Donations in range
+    knd_stmt = select(KindDonation).order_by(KindDonation.date.desc())
+    if date_from:
+        knd_stmt = knd_stmt.where(KindDonation.date >= date_from)
+    if date_to:
+        knd_stmt = knd_stmt.where(KindDonation.date <= date_to)
+    kind_donations = session.exec(knd_stmt).all()
+
+    # 4. Query Loans with repayment totals
+    loans_all = session.exec(select(Loan).order_by(Loan.date_taken.desc())).all()
+    loans_data = []
+    for l in loans_all:
+        pmt_stmt = select(func.sum(LoanPayment.amount_paid)).where(LoanPayment.loan_id == l.id)
+        if date_from:
+            pmt_stmt = pmt_stmt.where(LoanPayment.date_paid >= date_from)
+        if date_to:
+            pmt_stmt = pmt_stmt.where(LoanPayment.date_paid <= date_to)
+        total_paid = session.exec(pmt_stmt).first() or 0.0
+        rem = max(0.0, l.amount_taken - total_paid)
+        loans_data.append({
+            "lender_name": l.lender_name,
+            "date_taken": l.date_taken,
+            "received_in_account": l.received_in_account,
+            "amount_taken": l.amount_taken,
+            "total_paid": round(total_paid, 2),
+            "remaining_balance": round(rem, 2),
+            "status": l.status,
+            "purpose": l.purpose,
+            "notes": l.notes
+        })
+
+    # 5. Calculate account balances
+    balances = calculate_account_balances(session)
+
+    # 6. Generate Excel workbook
+    excel_bytes = generate_finance_excel(
+        date_from=date_from,
+        date_to=date_to,
+        received_entries=received_entries,
+        debit_entries=debit_entries,
+        kind_donations=kind_donations,
+        loans=loans_data,
+        balances=balances
+    )
+
+    period_filename = "all_time"
+    if date_from and date_to:
+        period_filename = f"{date_from}_to_{date_to}"
+    elif date_from:
+        period_filename = f"from_{date_from}"
+    elif date_to:
+        period_filename = f"up_to_{date_to}"
+
+    filename = f"Jamia_Usmania_Finance_Report_{period_filename}.xlsx"
+
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )

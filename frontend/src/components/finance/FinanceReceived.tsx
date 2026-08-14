@@ -1,8 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { getFinanceReceived, createFinanceReceived, ReceivedEntry } from '@/lib/api';
-import { Plus, Search, Filter, Calendar, ArrowUpRight, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ReceivedEntry, getFinanceReceived, createFinanceReceived } from '@/lib/api';
+import FinanceExcelExportModal from './FinanceExcelExportModal';
+import {
+  Plus,
+  Search,
+  Calendar,
+  ArrowUpRight,
+  Filter,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  FileSpreadsheet
+} from 'lucide-react';
 
 export default function FinanceReceived() {
   const [entries, setEntries] = useState<ReceivedEntry[]>([]);
@@ -17,6 +28,7 @@ export default function FinanceReceived() {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -33,15 +45,15 @@ export default function FinanceReceived() {
     purpose_note: ''
   });
 
-  const fetchEntries = useCallback(async () => {
+  const loadEntries = async () => {
     setLoading(true);
     try {
       const data = await getFinanceReceived({
-        date_from: dateFrom,
-        date_to: dateTo,
-        entry_type: entryTypeFilter,
-        account: accountFilter,
-        q: searchQuery
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+        entry_type: entryTypeFilter || undefined,
+        account: accountFilter || undefined,
+        q: searchQuery || undefined
       });
       setEntries(data);
     } catch (err) {
@@ -49,48 +61,40 @@ export default function FinanceReceived() {
     } finally {
       setLoading(false);
     }
-  }, [dateFrom, dateTo, entryTypeFilter, accountFilter, searchQuery]);
+  };
 
   useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
+    loadEntries();
+  }, [dateFrom, dateTo, entryTypeFilter, accountFilter, searchQuery]);
 
-  // Mode change logic
-  const handleModeChange = (newMode: 'Cash' | 'Online') => {
+  const handleModeChange = (mode: 'Cash' | 'Online') => {
     setFormData((prev) => ({
       ...prev,
-      mode: newMode,
-      account: newMode === 'Cash' ? 'Cash' : 'JazzCash'
+      mode,
+      account: mode === 'Cash' ? 'Cash' : 'Meezan Bank'
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      setErrorMsg('Please enter a valid amount greater than 0');
+    if (!formData.amount || Number(formData.amount) <= 0) {
+      setErrorMsg('Please enter a valid amount');
       return;
     }
     if (!formData.payer_name.trim()) {
-      setErrorMsg('Payer name is required');
+      setErrorMsg('Please enter payer / donor name');
       return;
     }
 
     setSubmitting(true);
     setErrorMsg('');
+
     try {
       await createFinanceReceived({
-        date: formData.date,
-        entry_type: formData.entry_type,
-        mode: formData.mode,
-        account: formData.mode === 'Cash' ? 'Cash' : formData.account,
-        amount: parseFloat(formData.amount),
-        payer_name: formData.payer_name,
-        payer_contact: formData.payer_contact,
-        payer_address: formData.payer_address,
-        purpose_note: formData.purpose_note
+        ...formData,
+        amount: Number(formData.amount)
       });
       setIsModalOpen(false);
-      // Reset form
       setFormData({
         date: new Date().toISOString().split('T')[0],
         entry_type: 'Donation',
@@ -102,40 +106,48 @@ export default function FinanceReceived() {
         payer_address: '',
         purpose_note: ''
       });
-      fetchEntries();
+      loadEntries();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to record entry');
+      setErrorMsg(err.message || 'Failed to record received entry');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const totalAmount = entries.reduce((sum, item) => sum + item.amount, 0);
+  const totalFilteredAmount = entries.reduce((sum, item) => sum + item.amount, 0);
 
   return (
     <div className="space-y-6">
-      {/* Top Action Bar */}
+      {/* Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-2xs">
-        <div>
-          <h2 className="text-lg font-bold font-serif text-[#145A32] flex items-center gap-2">
-            <ArrowUpRight className="w-5 h-5 text-emerald-600" /> Received Funds Registry (Income & Donations)
-          </h2>
-          <p className="text-xs text-gray-500 font-medium">
-            Record all cash & online receipts, donor contributions, zakat, and fee collections
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
+            <ArrowUpRight className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold font-serif text-[#145A32]">
+              Received Entries (Income & Donations)
+            </h2>
+            <p className="text-xs text-gray-500 font-medium">
+              Manage cash receipts, online donations, payer details & categorized funds
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="px-3 py-1.5 bg-[#FDF6E3] border border-[#145A32]/20 rounded-lg text-xs font-bold text-[#145A32]">
-            Filtered Total: <span className="font-mono text-sm">PKR {totalAmount.toLocaleString('en-PK')}</span>
-          </div>
+        <div className="flex items-center gap-2">
+          {/* Export Excel Button */}
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="px-3.5 py-2 bg-white hover:bg-gray-50 text-[#145A32] border border-[#145A32]/30 text-xs font-bold rounded-lg shadow-2xs transition-colors flex items-center gap-1.5"
+            title="Download Finance Excel report"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-[#145A32]" />
+            <span>Export Excel</span>
+          </button>
 
           <button
-            onClick={() => {
-              setErrorMsg('');
-              setIsModalOpen(true);
-            }}
-            className="px-4 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center gap-1.5"
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white text-xs font-semibold rounded-lg shadow-sm transition-all duration-150 flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             <span>+ New Received Entry</span>
@@ -426,6 +438,12 @@ export default function FinanceReceived() {
           </div>
         </div>
       )}
+
+      {/* Finance Excel Export Modal */}
+      <FinanceExcelExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+      />
     </div>
   );
 }

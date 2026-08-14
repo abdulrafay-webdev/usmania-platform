@@ -488,14 +488,13 @@ export default function AdmissionModal({
               />
             </div>
 
-            {/* Email */}
+            {/* Email (Optional) */}
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
-                Email Address <span className="text-red-500">*</span>
+                Email Address (Optional)
               </label>
               <input
                 type="email"
-                required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="candidate@jamiausmania.edu.pk"

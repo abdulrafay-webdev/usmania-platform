@@ -41,7 +41,7 @@ class Student(SQLModel, table=True):
     roll_no: str = Field(index=True, unique=True)
     name: str = Field(index=True)
     picture: str = Field(default="")
-    email: str = Field(default="")
+    email: Optional[str] = Field(default="")
     nic: str = Field(default="")
     dob: date_type
     gender: str = Field(default="Male")
@@ -85,7 +85,7 @@ class Student(SQLModel, table=True):
 class StudentCreate(SQLModel):
     name: str
     picture: Optional[str] = ""
-    email: str
+    email: Optional[str] = ""
     nic: str
     dob: date_type
     gender: str = "Male"
@@ -162,7 +162,7 @@ class Teacher(SQLModel, table=True):
     roll_no: str = Field(index=True, unique=True)
     name: str = Field(index=True)
     picture: str = Field(default="")
-    email: str = Field(default="")
+    email: Optional[str] = Field(default="")
     nic: str = Field(default="")
     dob: date_type
     gender: str = Field(default="Male")
@@ -184,7 +184,7 @@ class Teacher(SQLModel, table=True):
 class TeacherCreate(SQLModel):
     name: str
     picture: Optional[str] = ""
-    email: str
+    email: Optional[str] = ""
     nic: str
     dob: date_type
     gender: str = "Male"

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { getFinanceDashboardSummary, DashboardSummaryResponse } from '@/lib/api';
+import FinanceExcelExportModal from './FinanceExcelExportModal';
 import {
   Wallet,
   TrendingUp,
@@ -15,7 +16,9 @@ import {
   ArrowDownRight,
   Gift,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  FileSpreadsheet,
+  Download
 } from 'lucide-react';
 
 import {
@@ -37,6 +40,7 @@ import {
 export default function FinanceDashboard() {
   const [data, setData] = useState<DashboardSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const fetchSummary = async () => {
     setLoading(true);
@@ -72,7 +76,7 @@ export default function FinanceDashboard() {
   return (
     <div className="space-y-6">
       {/* Top Header Bar */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
         <div>
           <h2 className="text-lg font-bold font-serif text-[#145A32]">
             Financial Overview & Real-time Analytics
@@ -82,13 +86,25 @@ export default function FinanceDashboard() {
           </p>
         </div>
 
-        <button
-          onClick={fetchSummary}
-          className="px-3 py-1.5 bg-[#FAF5EA] hover:bg-[#FDF6E3] text-[#145A32] rounded-lg border border-[#145A32]/20 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>Refresh Data</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Excel Export Report Button */}
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="px-3.5 py-1.5 bg-[#145A32] hover:bg-[#0E4124] text-white rounded-lg shadow-xs text-xs font-bold flex items-center gap-2 transition-all"
+            title="Download full finance record in Excel by duration"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-[#FDF6E3]" />
+            <span>Export Finance Excel</span>
+          </button>
+
+          <button
+            onClick={fetchSummary}
+            className="px-3 py-1.5 bg-[#FAF5EA] hover:bg-[#FDF6E3] text-[#145A32] rounded-lg border border-[#145A32]/20 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Refresh Data</span>
+          </button>
+        </div>
       </div>
 
       {/* 1. Account Balances Grid */}
@@ -448,6 +464,12 @@ export default function FinanceDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Finance Excel Export Modal */}
+      <FinanceExcelExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+      />
     </div>
   );
 }
