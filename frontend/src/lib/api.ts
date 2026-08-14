@@ -26,7 +26,11 @@ export interface Student {
   assigned_teacher_id?: string;
   assigned_teacher_name?: string;
   is_zakat_eligible?: boolean;
+  zakat_syed_status?: 'Syed' | 'Non-Syed' | string;
   is_academy_student?: boolean;
+  academy_class?: string;
+  hostel_room_no?: string;
+  hostel_bed_no?: string;
 }
 
 export interface Teacher {

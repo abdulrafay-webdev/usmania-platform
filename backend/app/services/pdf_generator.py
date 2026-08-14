@@ -171,9 +171,36 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
     if record_type == "Student":
         info_rows.append(fmt("Class / Grade", "student_class"))
         info_rows.append(fmt("Subject Enrolled", "subject"))
-        info_rows.append(fmt("Boarding / Hostel", "boarding"))
-        info_rows.append(fmt("Zakat Eligible Status", "is_zakat_eligible"))
-        info_rows.append(fmt("Usmania Academy School", "is_academy_student"))
+        
+        # Boarding with Room & Bed
+        is_boarder = record_data.get("boarding", False)
+        if is_boarder:
+            room_no = record_data.get("hostel_room_no", "")
+            bed_no = record_data.get("hostel_bed_no", "")
+            board_desc = "Yes"
+            if room_no or bed_no:
+                board_desc += f" (Room: {room_no or 'N/A'}, Bed: {bed_no or 'N/A'})"
+            info_rows.append([Paragraph("Boarding / Hostel:", label_style), Paragraph(board_desc, value_style)])
+        else:
+            info_rows.append(fmt("Boarding / Hostel", "boarding"))
+
+        # Zakat Eligible with Syed status
+        is_zakat = record_data.get("is_zakat_eligible", False)
+        if is_zakat:
+            syed_status = record_data.get("zakat_syed_status", "Non-Syed")
+            info_rows.append([Paragraph("Zakat Eligible:", label_style), Paragraph(f"Yes ({syed_status})", value_style)])
+        else:
+            info_rows.append(fmt("Zakat Eligible Status", "is_zakat_eligible"))
+
+        # Usmania Academy with Class
+        is_academy = record_data.get("is_academy_student", False)
+        if is_academy:
+            acad_cls = record_data.get("academy_class", "")
+            acad_desc = f"Yes ({acad_cls})" if acad_cls else "Yes"
+            info_rows.append([Paragraph("Usmania Academy School:", label_style), Paragraph(acad_desc, value_style)])
+        else:
+            info_rows.append(fmt("Usmania Academy School", "is_academy_student"))
+
         if record_data.get("assigned_teacher_name"):
             info_rows.append([Paragraph("Assigned Teacher:", label_style), Paragraph(str(record_data.get("assigned_teacher_name")), ParagraphStyle('UT', parent=value_style, fontName='Helvetica-Bold', textColor=PRIMARY_GREEN))])
     else:

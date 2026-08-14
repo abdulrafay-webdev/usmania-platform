@@ -82,6 +82,13 @@ export default function StudentTable({
           <tbody className="divide-y divide-gray-100 text-sm">
             {students.map((student) => {
               const isSelected = selectedIds.includes(student.id);
+
+              const boarderText = student.boarding
+                ? student.hostel_room_no || student.hostel_bed_no
+                  ? `Boarder (${[student.hostel_room_no ? `R: ${student.hostel_room_no}` : '', student.hostel_bed_no ? `B: ${student.hostel_bed_no}` : ''].filter(Boolean).join(', ')})`
+                  : 'Boarder'
+                : 'Day Scholar';
+
               return (
                 <tr
                   key={student.id}
@@ -153,12 +160,12 @@ export default function StudentTable({
                     )}
                   </td>
 
-                  {/* Status Badges: Boarder, Zakat Eligible, Usmania Academy */}
+                  {/* Status Badges: Boarder with Room/Bed, Zakat with Syed Status, Usmania Academy with Class */}
                   <td className="py-3 px-3">
-                    <div className="flex flex-wrap gap-1 items-center">
+                    <div className="flex flex-col gap-1 items-start">
                       {student.boarding ? (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] font-semibold rounded border border-emerald-200" title="Hostel Boarder">
-                          <Home className="w-3 h-3" /> Boarder
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] font-semibold rounded border border-emerald-200" title={boarderText}>
+                          <Home className="w-3 h-3" /> {boarderText}
                         </span>
                       ) : (
                         <span className="inline-block px-1.5 py-0.5 bg-gray-50 text-gray-500 text-[11px] font-medium rounded border border-gray-200">
@@ -167,14 +174,14 @@ export default function StudentTable({
                       )}
 
                       {student.is_zakat_eligible && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-800 text-[11px] font-bold rounded border border-amber-300" title="Eligible for Zakat (Mustahiq Zakat)">
-                          <HeartHandshake className="w-3 h-3 text-amber-600" /> Zakat
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-800 text-[11px] font-bold rounded border border-amber-300" title={`Zakat Eligible (${student.zakat_syed_status || 'Non-Syed'})`}>
+                          <HeartHandshake className="w-3 h-3 text-amber-600" /> Zakat ({student.zakat_syed_status || 'Non-Syed'})
                         </span>
                       )}
 
                       {student.is_academy_student && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-800 text-[11px] font-bold rounded border border-blue-200" title="Enrolled in Usmania Academy School">
-                          <School className="w-3 h-3 text-blue-600" /> Academy
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 text-blue-800 text-[11px] font-bold rounded border border-blue-200" title={`Enrolled in Usmania Academy (${student.academy_class || 'Class 1'})`}>
+                          <School className="w-3 h-3 text-blue-600" /> Academy ({student.academy_class || 'Class 1'})
                         </span>
                       )}
                     </div>

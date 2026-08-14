@@ -11,7 +11,7 @@ import {
   Student,
   Teacher
 } from '@/lib/api';
-import { X, Upload, CheckCircle2, UserCheck, AlertCircle, Sparkles, Pencil, HeartHandshake, School } from 'lucide-react';
+import { X, Upload, CheckCircle2, UserCheck, AlertCircle, Sparkles, Pencil, HeartHandshake, School, Home, BedDouble, ShieldAlert } from 'lucide-react';
 
 interface AdmissionModalProps {
   isOpen: boolean;
@@ -56,12 +56,22 @@ export default function AdmissionModal({
     previous_institute: '',
     student_class: 'Hifz-ul-Quran',
     subject: 'Tajweed & Qirat',
-    boarding: false,
     admission_date: new Date().toISOString().split('T')[0],
     assigned_teacher_id: '',
     assigned_teacher_name: '',
+
+    // Boarding & Room/Bed
+    boarding: false,
+    hostel_room_no: '',
+    hostel_bed_no: '',
+
+    // Zakat & Syed Status
     is_zakat_eligible: false,
-    is_academy_student: false
+    zakat_syed_status: 'Non-Syed' as 'Non-Syed' | 'Syed',
+
+    // Usmania Academy & Class
+    is_academy_student: false,
+    academy_class: 'Class 1'
   });
 
   // Load edit record data into form
@@ -79,6 +89,7 @@ export default function AdmissionModal({
         setImagePreview(editRecord.picture || '');
         setSelectedFile(null);
 
+        const stud = editRecord as Student;
         setFormData({
           name: editRecord.name || '',
           father_guardian_name: editRecord.father_guardian_name || '',
@@ -93,14 +104,21 @@ export default function AdmissionModal({
           country: editRecord.country || 'Pakistan',
           institution: editRecord.institution || 'Jamia Usmania Main Campus',
           previous_institute: editRecord.previous_institute || '',
-          student_class: (editRecord as Student).student_class || 'Hifz-ul-Quran',
+          student_class: stud.student_class || 'Hifz-ul-Quran',
           subject: editRecord.subject || 'Tajweed & Qirat',
-          boarding: (editRecord as Student).boarding || false,
           admission_date: editRecord.admission_date || new Date().toISOString().split('T')[0],
-          assigned_teacher_id: (editRecord as Student).assigned_teacher_id || '',
-          assigned_teacher_name: (editRecord as Student).assigned_teacher_name || '',
-          is_zakat_eligible: (editRecord as Student).is_zakat_eligible || false,
-          is_academy_student: (editRecord as Student).is_academy_student || false
+          assigned_teacher_id: stud.assigned_teacher_id || '',
+          assigned_teacher_name: stud.assigned_teacher_name || '',
+
+          boarding: stud.boarding || false,
+          hostel_room_no: stud.hostel_room_no || '',
+          hostel_bed_no: stud.hostel_bed_no || '',
+
+          is_zakat_eligible: stud.is_zakat_eligible || false,
+          zakat_syed_status: (stud.zakat_syed_status as any) || 'Non-Syed',
+
+          is_academy_student: stud.is_academy_student || false,
+          academy_class: stud.academy_class || 'Class 1'
         });
       } else {
         setRole(initialRole);
@@ -122,12 +140,19 @@ export default function AdmissionModal({
           previous_institute: '',
           student_class: 'Hifz-ul-Quran',
           subject: 'Tajweed & Qirat',
-          boarding: false,
           admission_date: new Date().toISOString().split('T')[0],
           assigned_teacher_id: '',
           assigned_teacher_name: '',
+
+          boarding: false,
+          hostel_room_no: '',
+          hostel_bed_no: '',
+
           is_zakat_eligible: false,
-          is_academy_student: false
+          zakat_syed_status: 'Non-Syed',
+
+          is_academy_student: false,
+          academy_class: 'Class 1'
         });
       }
     }
@@ -539,47 +564,152 @@ export default function AdmissionModal({
                   />
                 </div>
 
-                {/* Additional Student Status Checkboxes */}
-                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-[#FDF6E3] rounded-xl border border-[#145A32]/20">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="boarding"
-                      checked={formData.boarding}
-                      onChange={(e) => setFormData({ ...formData, boarding: e.target.checked })}
-                      className="rounded border-gray-300 text-[#145A32] focus:ring-[#145A32] w-4 h-4 cursor-pointer"
-                    />
-                    <label htmlFor="boarding" className="text-xs font-bold text-gray-800 cursor-pointer">
-                      Hostel Boarder
-                    </label>
+                {/* Additional Student Status Checkboxes with Dynamic Dropdowns / Inputs */}
+                <div className="sm:col-span-2 space-y-3 p-4 bg-[#FDF6E3]/60 rounded-xl border border-[#145A32]/25">
+                  <div className="text-xs font-bold text-[#145A32] uppercase tracking-wider">
+                    Student Category & Facilities
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="zakat_eligible"
-                      checked={formData.is_zakat_eligible}
-                      onChange={(e) => setFormData({ ...formData, is_zakat_eligible: e.target.checked })}
-                      className="rounded border-gray-300 text-[#145A32] focus:ring-[#145A32] w-4 h-4 cursor-pointer"
-                    />
-                    <label htmlFor="zakat_eligible" className="text-xs font-bold text-[#145A32] cursor-pointer flex items-center gap-1">
-                      <HeartHandshake className="w-3.5 h-3.5 text-amber-600" />
-                      Zakat Eligible (مستحق زکوۃ)
-                    </label>
+                  {/* 1. Boarding Checkbox & Dynamic Room / Bed Sub-inputs */}
+                  <div className="bg-white p-3 rounded-lg border border-gray-200 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="boarding"
+                        checked={formData.boarding}
+                        onChange={(e) => setFormData({ ...formData, boarding: e.target.checked })}
+                        className="rounded border-gray-300 text-[#145A32] focus:ring-[#145A32] w-4 h-4 cursor-pointer"
+                      />
+                      <label htmlFor="boarding" className="text-xs font-bold text-gray-800 cursor-pointer flex items-center gap-1.5">
+                        <Home className="w-3.5 h-3.5 text-[#145A32]" />
+                        Hostel Boarder (رہائشی طالب علم)
+                      </label>
+                    </div>
+
+                    {formData.boarding && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 pl-6 border-t border-gray-100 animate-fadeIn">
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                            Room Number (کمرہ نمبر)
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.hostel_room_no}
+                            onChange={(e) => setFormData({ ...formData, hostel_room_no: e.target.value })}
+                            placeholder="e.g. Room 101 / Room 4"
+                            className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                            Bed Number (بیڈ نمبر)
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.hostel_bed_no}
+                            onChange={(e) => setFormData({ ...formData, hostel_bed_no: e.target.value })}
+                            placeholder="e.g. Bed A / Bed 2"
+                            className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="academy_student"
-                      checked={formData.is_academy_student}
-                      onChange={(e) => setFormData({ ...formData, is_academy_student: e.target.checked })}
-                      className="rounded border-gray-300 text-[#145A32] focus:ring-[#145A32] w-4 h-4 cursor-pointer"
-                    />
-                    <label htmlFor="academy_student" className="text-xs font-bold text-blue-900 cursor-pointer flex items-center gap-1">
-                      <School className="w-3.5 h-3.5 text-blue-600" />
-                      Usmania Academy School
-                    </label>
+                  {/* 2. Zakat Eligible Checkbox & Dynamic Syed / Non-Syed Option */}
+                  <div className="bg-white p-3 rounded-lg border border-gray-200 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="zakat_eligible"
+                        checked={formData.is_zakat_eligible}
+                        onChange={(e) => setFormData({ ...formData, is_zakat_eligible: e.target.checked })}
+                        className="rounded border-gray-300 text-[#145A32] focus:ring-[#145A32] w-4 h-4 cursor-pointer"
+                      />
+                      <label htmlFor="zakat_eligible" className="text-xs font-bold text-[#145A32] cursor-pointer flex items-center gap-1.5">
+                        <HeartHandshake className="w-3.5 h-3.5 text-amber-600" />
+                        Zakat Eligible (مستحق زکوۃ)
+                      </label>
+                    </div>
+
+                    {formData.is_zakat_eligible && (
+                      <div className="pt-2 pl-6 border-t border-gray-100 animate-fadeIn">
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1.5">
+                          Syed / Non-Syed Status (سید / غیر سید)
+                        </label>
+                        <div className="flex items-center gap-6">
+                          <label className="inline-flex items-center gap-2 text-xs text-gray-800 cursor-pointer font-medium">
+                            <input
+                              type="radio"
+                              name="zakat_syed_status"
+                              value="Non-Syed"
+                              checked={formData.zakat_syed_status === 'Non-Syed'}
+                              onChange={() => setFormData({ ...formData, zakat_syed_status: 'Non-Syed' })}
+                              className="text-[#145A32] focus:ring-[#145A32]"
+                            />
+                            <span>Non-Syed (غیر سید - زکوۃ مستحق)</span>
+                          </label>
+
+                          <label className="inline-flex items-center gap-2 text-xs text-amber-900 cursor-pointer font-bold">
+                            <input
+                              type="radio"
+                              name="zakat_syed_status"
+                              value="Syed"
+                              checked={formData.zakat_syed_status === 'Syed'}
+                              onChange={() => setFormData({ ...formData, zakat_syed_status: 'Syed' })}
+                              className="text-[#145A32] focus:ring-[#145A32]"
+                            />
+                            <span>Syed (سید - امداد برائے سادات / عطیات)</span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 3. Usmania Academy Checkbox & Dynamic Class Dropdown (Montessori to Matric) */}
+                  <div className="bg-white p-3 rounded-lg border border-gray-200 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="academy_student"
+                        checked={formData.is_academy_student}
+                        onChange={(e) => setFormData({ ...formData, is_academy_student: e.target.checked })}
+                        className="rounded border-gray-300 text-[#145A32] focus:ring-[#145A32] w-4 h-4 cursor-pointer"
+                      />
+                      <label htmlFor="academy_student" className="text-xs font-bold text-blue-900 cursor-pointer flex items-center gap-1.5">
+                        <School className="w-3.5 h-3.5 text-blue-600" />
+                        Usmania Academy School Student (سکول کے طالب علم)
+                      </label>
+                    </div>
+
+                    {formData.is_academy_student && (
+                      <div className="pt-2 pl-6 border-t border-gray-100 animate-fadeIn">
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Select School Class (Montessori to Matric)
+                        </label>
+                        <select
+                          value={formData.academy_class}
+                          onChange={(e) => setFormData({ ...formData, academy_class: e.target.value })}
+                          className="w-full sm:w-72 px-2.5 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white"
+                        >
+                          <option value="Montessori">Montessori</option>
+                          <option value="Playgroup">Playgroup</option>
+                          <option value="Nursery">Nursery</option>
+                          <option value="KG / Prep">KG / Prep</option>
+                          <option value="Class 1">Class 1</option>
+                          <option value="Class 2">Class 2</option>
+                          <option value="Class 3">Class 3</option>
+                          <option value="Class 4">Class 4</option>
+                          <option value="Class 5">Class 5</option>
+                          <option value="Class 6">Class 6</option>
+                          <option value="Class 7">Class 7</option>
+                          <option value="Class 8">Class 8</option>
+                          <option value="Class 9 (Matric Part-I)">Class 9 (Matric Part-I)</option>
+                          <option value="Class 10 (Matric Part-II)">Class 10 (Matric Part-II)</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </div>
               </>

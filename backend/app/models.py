@@ -30,6 +30,10 @@ class LoanStatusEnum(str, Enum):
     ACTIVE = "Active"
     FULLY_PAID = "Fully Paid"
 
+class SyedStatusEnum(str, Enum):
+    SYED = "Syed"
+    NON_SYED = "Non-Syed"
+
 
 # ----------------- STUDENT SQLMODEL -----------------
 class Student(SQLModel, table=True):
@@ -61,9 +65,16 @@ class Student(SQLModel, table=True):
     assigned_teacher_id: Optional[str] = Field(default=None)
     assigned_teacher_name: Optional[str] = Field(default="")
 
-    # New Checkbox Flags
+    # Checkbox Flags & Dynamic Sub-options
     is_zakat_eligible: bool = Field(default=False, description="Is student eligible for Zakat / Mustahiq Zakat")
+    zakat_syed_status: Optional[str] = Field(default="Non-Syed", description="Syed or Non-Syed")
+
     is_academy_student: bool = Field(default=False, description="Is student also enrolled in Usmania Academy School")
+    academy_class: Optional[str] = Field(default="", description="Class in Usmania Academy School (Montessori to Matric)")
+
+    # Boarding Details
+    hostel_room_no: Optional[str] = Field(default="", description="Hostel Room Number")
+    hostel_bed_no: Optional[str] = Field(default="", description="Hostel Bed Number")
 
 
 class StudentCreate(SQLModel):
@@ -91,7 +102,13 @@ class StudentCreate(SQLModel):
     assigned_teacher_name: Optional[str] = ""
 
     is_zakat_eligible: bool = False
+    zakat_syed_status: Optional[str] = "Non-Syed"
+
     is_academy_student: bool = False
+    academy_class: Optional[str] = ""
+
+    hostel_room_no: Optional[str] = ""
+    hostel_bed_no: Optional[str] = ""
 
 
 class StudentUpdate(SQLModel):
@@ -116,7 +133,13 @@ class StudentUpdate(SQLModel):
     assigned_teacher_name: Optional[str] = None
 
     is_zakat_eligible: Optional[bool] = None
+    zakat_syed_status: Optional[str] = None
+
     is_academy_student: Optional[bool] = None
+    academy_class: Optional[str] = None
+
+    hostel_room_no: Optional[str] = None
+    hostel_bed_no: Optional[str] = None
 
 
 # ----------------- TEACHER SQLMODEL -----------------

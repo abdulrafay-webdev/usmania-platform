@@ -20,14 +20,16 @@ def generate_records_excel(records: list[dict], record_type: str = "Student") ->
     if record_type == "Student":
         headers = [
             "Roll No", "Full Name", "Father / Guardian", "Class / Grade",
-            "Subject Enrolled", "Boarding", "Zakat Eligible", "Usmania Academy School",
+            "Subject Enrolled", "Boarding", "Room No", "Bed No",
+            "Zakat Eligible", "Zakat Syed Status", "Usmania Academy School", "Academy Class",
             "Assigned Teacher", "CNIC / B-Form", "Email", "Contact",
             "Gender", "Date of Birth", "Admission Date", "Islamic (Hijri) Date",
             "Current Address", "Permanent Address", "City", "Country", "Institution", "Previous Institute"
         ]
         keys = [
             "roll_no", "name", "father_guardian_name", "student_class",
-            "subject", "boarding", "is_zakat_eligible", "is_academy_student",
+            "subject", "boarding", "hostel_room_no", "hostel_bed_no",
+            "is_zakat_eligible", "zakat_syed_status", "is_academy_student", "academy_class",
             "assigned_teacher_name", "nic", "email", "contact",
             "gender", "dob", "admission_date", "islamic_date",
             "current_address", "permanent_address", "city", "country", "institution", "previous_institute"

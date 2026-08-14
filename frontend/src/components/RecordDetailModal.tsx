@@ -9,7 +9,7 @@ import {
   getStudentIdCardDownloadUrl,
   getTeacherIdCardDownloadUrl
 } from '@/lib/api';
-import { X, FileDown, Building2, Calendar, MapPin, Mail, Phone, Home, Sparkles, Contact, UserCheck, Pencil, Trash2, HeartHandshake, School } from 'lucide-react';
+import { X, FileDown, Building2, Calendar, MapPin, Mail, Phone, Home, Sparkles, Contact, UserCheck, Pencil, Trash2, HeartHandshake, School, BedDouble } from 'lucide-react';
 
 interface RecordDetailModalProps {
   record: Student | Teacher | null;
@@ -159,30 +159,41 @@ export default function RecordDetailModal({
                   </span>
                 </div>
 
+                {/* Boarding + Room/Bed Details */}
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
                     Boarding / Hostel Status
                   </span>
                   <span className="text-sm font-semibold text-gray-900 mt-0.5 flex items-center gap-1.5">
                     <Home className="w-4 h-4 text-[#145A32]" />
-                    {studentRec.boarding ? 'Hostel Boarder' : 'Day Scholar'}
+                    {studentRec.boarding ? (
+                      <span className="text-[#145A32] font-bold">
+                        Hostel Boarder {studentRec.hostel_room_no ? `(Room ${studentRec.hostel_room_no})` : ''} {studentRec.hostel_bed_no ? `• Bed ${studentRec.hostel_bed_no}` : ''}
+                      </span>
+                    ) : (
+                      <span className="text-gray-600">Day Scholar</span>
+                    )}
                   </span>
                 </div>
 
+                {/* Zakat + Syed Status */}
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
-                    Zakat Eligibility Status
+                    Zakat Eligibility & Syed Status
                   </span>
                   <span className="text-sm font-semibold text-gray-900 mt-0.5 flex items-center gap-1.5">
                     <HeartHandshake className="w-4 h-4 text-amber-600" />
                     {studentRec.is_zakat_eligible ? (
-                      <span className="text-amber-800 font-bold">Eligible for Zakat (مستحق زکوۃ)</span>
+                      <span className="text-amber-800 font-bold">
+                        Eligible for Zakat ({studentRec.zakat_syed_status || 'Non-Syed'})
+                      </span>
                     ) : (
                       <span className="text-gray-500">Not Zakat Eligible</span>
                     )}
                   </span>
                 </div>
 
+                {/* Usmania Academy + Class */}
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
                     Usmania Academy School
@@ -190,7 +201,9 @@ export default function RecordDetailModal({
                   <span className="text-sm font-semibold text-gray-900 mt-0.5 flex items-center gap-1.5">
                     <School className="w-4 h-4 text-blue-600" />
                     {studentRec.is_academy_student ? (
-                      <span className="text-blue-900 font-bold">Enrolled in Usmania Academy</span>
+                      <span className="text-blue-900 font-bold">
+                        Enrolled ({studentRec.academy_class || 'Class 1'})
+                      </span>
                     ) : (
                       <span className="text-gray-500">Not Enrolled</span>
                     )}
