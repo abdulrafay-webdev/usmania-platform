@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Student, getStudentPdfDownloadUrl, getStudentIdCardDownloadUrl } from '@/lib/api';
-import { Eye, FileDown, Home, BookOpen, UserCheck, Pencil, Trash2, HeartHandshake, School } from 'lucide-react';
+import { Eye, FileDown, Home, BookOpen, UserCheck, Pencil, Trash2, HeartHandshake, School, Contact } from 'lucide-react';
 
 interface StudentTableProps {
   students: Student[];
@@ -10,6 +10,7 @@ interface StudentTableProps {
   onToggleSelect: (id: string) => void;
   onToggleSelectAll: () => void;
   onViewProfile: (student: Student) => void;
+  onViewIdCard?: (student: Student) => void;
   onEditStudent: (student: Student) => void;
   onDeleteStudent: (student: Student) => void;
   isLoading?: boolean;
@@ -21,6 +22,7 @@ export default function StudentTable({
   onToggleSelect,
   onToggleSelectAll,
   onViewProfile,
+  onViewIdCard,
   onEditStudent,
   onDeleteStudent,
   isLoading = false
@@ -215,6 +217,26 @@ export default function StudentTable({
                         <Eye className="w-4 h-4" />
                       </button>
 
+                      {onViewIdCard ? (
+                        <button
+                          onClick={() => onViewIdCard(student)}
+                          className="p-1.5 text-[#145A32] hover:text-[#0E4124] hover:bg-[#FDF6E3] rounded-lg transition-colors"
+                          title="View & Print Official ID Card"
+                        >
+                          <Contact className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <a
+                          href={getStudentIdCardDownloadUrl(student.id)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1.5 text-[#145A32] hover:text-[#0E4124] hover:bg-[#FDF6E3] rounded-lg transition-colors"
+                          title="Download Printable ID Card (Front & Back)"
+                        >
+                          <Contact className="w-4 h-4" />
+                        </a>
+                      )}
+
                       <button
                         onClick={() => onEditStudent(student)}
                         className="p-1.5 text-gray-600 hover:text-[#145A32] hover:bg-[#FDF6E3] rounded-lg transition-colors"
@@ -222,16 +244,6 @@ export default function StudentTable({
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
-
-                      <a
-                        href={getStudentIdCardDownloadUrl(student.id)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1.5 text-gray-600 hover:text-[#145A32] hover:bg-[#FDF6E3] rounded-lg transition-colors"
-                        title="Download Printable ID Card (Front & Back)"
-                      >
-                        <FileDown className="w-4 h-4" />
-                      </a>
 
                       <button
                         onClick={() => onDeleteStudent(student)}

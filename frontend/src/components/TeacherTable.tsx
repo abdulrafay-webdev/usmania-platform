@@ -10,6 +10,7 @@ interface TeacherTableProps {
   onToggleSelect: (id: string) => void;
   onToggleSelectAll: () => void;
   onViewProfile: (teacher: Teacher) => void;
+  onViewIdCard?: (teacher: Teacher) => void;
   onEditTeacher: (teacher: Teacher) => void;
   onDeleteTeacher: (teacher: Teacher) => void;
   isLoading?: boolean;
@@ -21,6 +22,7 @@ export default function TeacherTable({
   onToggleSelect,
   onToggleSelectAll,
   onViewProfile,
+  onViewIdCard,
   onEditTeacher,
   onDeleteTeacher,
   isLoading = false
@@ -160,23 +162,25 @@ export default function TeacherTable({
                         <Eye className="w-4 h-4" />
                       </button>
 
-                      <button
-                        onClick={() => onEditTeacher(teacher)}
-                        className="p-1.5 text-gray-600 hover:text-[#145A32] hover:bg-[#FDF6E3] rounded-lg transition-colors"
-                        title="Edit Record"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-
-                      <a
-                        href={getTeacherIdCardDownloadUrl(teacher.id)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1.5 text-gray-600 hover:text-[#145A32] hover:bg-[#FDF6E3] rounded-lg transition-colors"
-                        title="Download Printable ID Card (Front & Back)"
-                      >
-                        <Contact className="w-4 h-4" />
-                      </a>
+                      {onViewIdCard ? (
+                        <button
+                          onClick={() => onViewIdCard(teacher)}
+                          className="p-1.5 text-[#145A32] hover:text-[#0E4124] hover:bg-[#FDF6E3] rounded-lg transition-colors"
+                          title="View & Print Official ID Card"
+                        >
+                          <Contact className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <a
+                          href={getTeacherIdCardDownloadUrl(teacher.id)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1.5 text-[#145A32] hover:text-[#0E4124] hover:bg-[#FDF6E3] rounded-lg transition-colors"
+                          title="Download Printable ID Card (Front & Back)"
+                        >
+                          <Contact className="w-4 h-4" />
+                        </a>
+                      )}
 
                       <a
                         href={getTeacherPdfDownloadUrl(teacher.id)}
@@ -187,6 +191,14 @@ export default function TeacherTable({
                       >
                         <FileDown className="w-4 h-4" />
                       </a>
+
+                      <button
+                        onClick={() => onEditTeacher(teacher)}
+                        className="p-1.5 text-gray-600 hover:text-[#145A32] hover:bg-[#FDF6E3] rounded-lg transition-colors"
+                        title="Edit Record"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
 
                       <button
                         onClick={() => onDeleteTeacher(teacher)}

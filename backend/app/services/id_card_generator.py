@@ -12,8 +12,8 @@ from reportlab.lib.units import inch
 # Standard CR80 Card Dimensions: 3.375 in x 2.125 in (85.6mm x 54mm = 243pt x 153pt)
 CARD_WIDTH = 3.375 * inch
 CARD_HEIGHT = 2.125 * inch
-HEADER_HEIGHT = 0.42 * inch
-BODY_HEIGHT = CARD_HEIGHT - HEADER_HEIGHT  # 1.705 inch
+HEADER_HEIGHT = 0.44 * inch
+BODY_HEIGHT = CARD_HEIGHT - HEADER_HEIGHT  # 1.685 inch
 
 # Brand Palette (Strict Color Consistency)
 PRIMARY_GREEN = colors.HexColor("#145A32")
@@ -22,11 +22,12 @@ DARK_TEXT = colors.HexColor("#1F2937")
 MUTED_GRAY = colors.HexColor("#64748B")
 LIGHT_BG = colors.HexColor("#FAF5EA")
 BORDER_COLOR = colors.HexColor("#145A32")
+GOLD_ACCENT = colors.HexColor("#D97706")
 
 # Font Sizes & Styles
-FONT_TITLE_SIZE = 8.5
+FONT_TITLE_SIZE = 8.8
 FONT_SUBTITLE_SIZE = 5.8
-FONT_NAME_SIZE = 8.2
+FONT_NAME_SIZE = 8.5
 FONT_LABEL_SIZE = 6.2
 FONT_VALUE_SIZE = 6.2
 FONT_RULE_SIZE = 5.8
@@ -49,7 +50,7 @@ header_title_style = ParagraphStyle(
     fontName='Helvetica-Bold',
     fontSize=FONT_TITLE_SIZE,
     textColor=colors.white,
-    leading=9.5
+    leading=10.0
 )
 
 header_subtitle_style = ParagraphStyle(
@@ -67,7 +68,7 @@ card_name_style = ParagraphStyle(
     fontName='Helvetica-Bold',
     fontSize=FONT_NAME_SIZE,
     textColor=PRIMARY_GREEN,
-    leading=9.0
+    leading=9.5
 )
 
 label_style = ParagraphStyle(
@@ -125,12 +126,15 @@ def truncate_text(text: str, max_chars: int = 24) -> str:
         return text_str[:max_chars - 2] + ".."
     return text_str
 
-def get_logo_flowable(width=0.30*inch, height=0.30*inch):
-    """Loads trust logo image from frontend/public/images/logo.png or fallback."""
+def get_logo_flowable(width=0.32*inch, height=0.32*inch):
+    """Loads trust logo image from filesystem or fallback paths."""
     possible_paths = [
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "logo.png")),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "logo.png")),
         os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend", "public", "images", "logo.png")),
         os.path.abspath("D:/jamia usmania/platform/frontend/public/images/logo.png"),
-        os.path.abspath("../frontend/public/images/logo.png"),
+        os.path.abspath("frontend/public/images/logo.png"),
+        os.path.abspath("public/images/logo.png"),
     ]
 
     for p in possible_paths:
@@ -141,8 +145,8 @@ def get_logo_flowable(width=0.30*inch, height=0.30*inch):
                 pass
     return None
 
-def get_logo_badge(size=0.28*inch):
-    """Wraps logo in a white circular/rounded box with border for high contrast against green header."""
+def get_logo_badge(size=0.30*inch):
+    """Wraps logo in a white box with subtle border for crisp contrast against green header."""
     logo_img = get_logo_flowable(size, size)
     if not logo_img:
         return None
@@ -157,7 +161,7 @@ def get_logo_badge(size=0.28*inch):
     ]))
     return badge
 
-def fetch_photo_flowable(image_url: str, width=0.75*inch, height=0.95*inch):
+def fetch_photo_flowable(image_url: str, width=0.75*inch, height=0.92*inch):
     """Downloads or decodes candidate photo for ReportLab."""
     if not image_url:
         return None
@@ -180,17 +184,17 @@ def fetch_photo_flowable(image_url: str, width=0.75*inch, height=0.95*inch):
     return None
 
 def build_card_header(subtitle_text: str) -> Table:
-    """Builds a locked header table matching exact CARD_WIDTH (3.375 in) & HEADER_HEIGHT (0.42 in)."""
+    """Builds a locked header table matching exact CARD_WIDTH (3.375 in) & HEADER_HEIGHT (0.44 in)."""
     h_text = Table([
         [Paragraph("JAMIA USMANIA TRUST", header_title_style)],
         [Paragraph(subtitle_text, header_subtitle_style)]
-    ], colWidths=[2.85 * inch], rowHeights=[0.19 * inch, 0.14 * inch])
+    ], colWidths=[2.85 * inch], rowHeights=[0.20 * inch, 0.15 * inch])
     h_text.setStyle(TableStyle([
         ('PADDING', (0, 0), (-1, -1), 0),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
 
-    badge = get_logo_badge(0.28 * inch)
+    badge = get_logo_badge(0.30 * inch)
     if badge:
         hdr_table = Table([[badge, h_text]], colWidths=[0.42 * inch, 2.955 * inch], rowHeights=[HEADER_HEIGHT])
     else:
@@ -199,8 +203,8 @@ def build_card_header(subtitle_text: str) -> Table:
     hdr_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), PRIMARY_GREEN),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 3),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
         ('LEFTPADDING', (0, 0), (-1, -1), 4),
         ('RIGHTPADDING', (0, 0), (-1, -1), 4),
     ]))
@@ -210,14 +214,14 @@ def build_front_card(record_data: dict, record_type: str) -> Table:
     """Builds Front ID Card locked to EXACT CR80 size (3.375 in x 2.125 in) spanning full width."""
     hdr_table = build_card_header(f"OFFICIAL {record_type.upper()} IDENTITY CARD")
 
-    # Photo Frame
-    photo_obj = fetch_photo_flowable(record_data.get('picture', ''), 0.75 * inch, 0.95 * inch)
+    # Photo Frame + Roll No Underneath
+    photo_obj = fetch_photo_flowable(record_data.get('picture', ''), 0.74 * inch, 0.90 * inch)
     if not photo_obj:
         photo_cell = Paragraph("<b>[ PHOTO ]</b>", ParagraphStyle('P', parent=label_style, alignment=1, fontSize=5.5))
     else:
         photo_cell = photo_obj
 
-    photo_box = Table([[photo_cell]], colWidths=[0.78 * inch], rowHeights=[0.98 * inch])
+    photo_box = Table([[photo_cell]], colWidths=[0.76 * inch], rowHeights=[0.92 * inch])
     photo_box.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, -1), 1.0, PRIMARY_GREEN),
         ('BACKGROUND', (0, 0), (-1, -1), colors.white),
@@ -226,16 +230,33 @@ def build_front_card(record_data: dict, record_type: str) -> Table:
         ('PADDING', (0, 0), (-1, -1), 1),
     ]))
 
-    # Front Key-Value Rows (Strict 2-Column Alignment spanning full width)
-    r_no = truncate_text(record_data.get('roll_no', 'N/A'), 15)
+    # Roll No pill badge under photo
+    r_no_str = record_data.get('roll_no', 'N/A')
+    roll_badge = Table([[
+        Paragraph(f"<b>{truncate_text(r_no_str, 13)}</b>", ParagraphStyle('RB', parent=value_style, fontName='Helvetica-Bold', fontSize=5.5, textColor=colors.white, alignment=1))
+    ]], colWidths=[0.76 * inch], rowHeights=[0.16 * inch])
+    roll_badge.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), PRIMARY_GREEN),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('PADDING', (0, 0), (-1, -1), 0),
+    ]))
+
+    photo_column = Table([[photo_box], [roll_badge]], colWidths=[0.78 * inch], rowHeights=[0.94 * inch, 0.18 * inch])
+    photo_column.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('PADDING', (0, 0), (-1, -1), 0),
+    ]))
+
+    # Front Key-Value Rows
     name = truncate_text(record_data.get('name', 'N/A'), 20)
-    father = truncate_text(record_data.get('father_guardian_name', 'N/A'), 22)
+    father = truncate_text(record_data.get('father_name') or record_data.get('father_guardian_name', 'N/A'), 22)
     cnic = truncate_text(record_data.get('nic', 'N/A'), 17)
     phone = truncate_text(record_data.get('contact', 'N/A'), 15)
     hijri = truncate_text(record_data.get('islamic_date', 'N/A'), 20)
 
     fields = [
-        [Paragraph("Roll No:", label_style), Paragraph(f"<b>{r_no}</b>", ParagraphStyle('R', parent=value_style, fontName='Helvetica-Bold', textColor=PRIMARY_GREEN))],
         [Paragraph("Name:", label_style), Paragraph(name, card_name_style)],
         [Paragraph("Father:", label_style), Paragraph(father, value_style)],
     ]
@@ -254,7 +275,7 @@ def build_front_card(record_data: dict, record_type: str) -> Table:
     fields.append([Paragraph("Phone:", label_style), Paragraph(phone, value_style)])
     fields.append([Paragraph("Hijri Date:", label_style), Paragraph(hijri, value_style)])
 
-    t_fields = Table(fields, colWidths=[0.60 * inch, 1.85 * inch])
+    t_fields = Table(fields, colWidths=[0.58 * inch, 1.85 * inch])
     t_fields.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 0.5),
@@ -263,7 +284,7 @@ def build_front_card(record_data: dict, record_type: str) -> Table:
         ('RIGHTPADDING', (0, 0), (-1, -1), 1),
     ]))
 
-    info_row_block = Table([[photo_box, t_fields]], colWidths=[0.85 * inch, 2.525 * inch], rowHeights=[1.25 * inch])
+    info_row_block = Table([[photo_column, t_fields]], colWidths=[0.82 * inch, 2.535 * inch], rowHeights=[1.24 * inch])
     info_row_block.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('LEFTPADDING', (0, 0), (-1, -1), 2),
@@ -286,7 +307,7 @@ def build_front_card(record_data: dict, record_type: str) -> Table:
             Paragraph("www.usmaniatrust.org", website_tagline_style),
             Paragraph("Valid Thru: 2026-2027", valid_thru_style)
         ]
-    ], colWidths=[1.80 * inch, 1.575 * inch], rowHeights=[0.18 * inch])
+    ], colWidths=[1.80 * inch, 1.575 * inch], rowHeights=[0.17 * inch])
     footer_strip.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('LEFTPADDING', (0, 0), (-1, -1), 4),
@@ -295,7 +316,7 @@ def build_front_card(record_data: dict, record_type: str) -> Table:
         ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
     ]))
 
-    front_body = Table([[info_row_block], [divider], [footer_strip]], colWidths=[CARD_WIDTH], rowHeights=[1.30 * inch, 0.03 * inch, 0.22 * inch])
+    front_body = Table([[info_row_block], [divider], [footer_strip]], colWidths=[CARD_WIDTH], rowHeights=[1.26 * inch, 0.03 * inch, 0.19 * inch])
     front_body.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -324,10 +345,10 @@ def build_back_card() -> Table:
         [Paragraph("<b>1. Card Mandate:</b> Must be displayed inside campus at all times.", rule_style)],
         [Paragraph("<b>2. Non-Transferable:</b> Property of Jamia Usmania Trust.", rule_style)],
         [Paragraph("<b>3. Loss Report:</b> Report lost cards immediately to admin office.", rule_style)],
-        [Paragraph("<b>4. Emergency:</b> Phone: +92 300 1234567 | usmaniatrust@gmail.com", rule_style)],
+        [Paragraph("<b>4. Emergency:</b> Phone: +92 300 1234567 | info@jamiausmania.edu.pk", rule_style)],
     ]
 
-    t_rules = Table(rules_content, colWidths=[3.25 * inch], rowHeights=[0.24 * inch, 0.24 * inch, 0.24 * inch, 0.24 * inch])
+    t_rules = Table(rules_content, colWidths=[3.25 * inch], rowHeights=[0.23 * inch, 0.23 * inch, 0.23 * inch, 0.23 * inch])
     t_rules.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('PADDING', (0, 0), (-1, -1), 1.5),
@@ -344,7 +365,7 @@ def build_back_card() -> Table:
         ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
     ]))
 
-    back_body = Table([[t_rules], [sig_box]], colWidths=[CARD_WIDTH], rowHeights=[1.10 * inch, 0.50 * inch])
+    back_body = Table([[t_rules], [sig_box]], colWidths=[CARD_WIDTH], rowHeights=[1.08 * inch, 0.49 * inch])
     back_body.setStyle(TableStyle([
         ('PADDING', (0, 0), (-1, -1), 2),
         ('BACKGROUND', (0, 0), (-1, -1), LIGHT_BG),

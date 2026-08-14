@@ -16,6 +16,7 @@ interface RecordDetailModalProps {
   type: 'student' | 'teacher';
   isOpen: boolean;
   onClose: () => void;
+  onViewIdCard?: (record: Student | Teacher) => void;
   onEdit?: (record: Student | Teacher) => void;
   onDelete?: (record: Student | Teacher) => void;
 }
@@ -25,6 +26,7 @@ export default function RecordDetailModal({
   type,
   isOpen,
   onClose,
+  onViewIdCard,
   onEdit,
   onDelete
 }: RecordDetailModalProps) {
@@ -168,14 +170,14 @@ export default function RecordDetailModal({
 
             <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
               <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
-                Student Phone & Email
+                Phone & Email
               </span>
               <div className="text-xs text-gray-900 mt-0.5 space-y-0.5">
                 <div className="flex items-center gap-1.5 font-semibold">
                   <Phone className="w-3 h-3 text-[#145A32]" /> {record.contact}
                 </div>
                 <div className="flex items-center gap-1.5 text-gray-600">
-                  <Mail className="w-3 h-3 text-gray-400" /> {record.email}
+                  <Mail className="w-3 h-3 text-gray-400" /> {record.email || 'None'}
                 </div>
               </div>
             </div>
@@ -311,15 +313,28 @@ export default function RecordDetailModal({
           </div>
 
           <div className="flex items-center gap-2">
-            <a
-              href={idCardUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="px-3.5 py-2 bg-[#FDF6E3] hover:bg-white text-[#145A32] border border-[#145A32]/30 text-xs font-bold rounded-lg shadow-xs transition-all flex items-center gap-1.5"
-            >
-              <Contact className="w-4 h-4 text-[#145A32]" />
-              <span>ID Card</span>
-            </a>
+            {onViewIdCard ? (
+              <button
+                onClick={() => {
+                  onClose();
+                  onViewIdCard(record);
+                }}
+                className="px-3.5 py-2 bg-[#FDF6E3] hover:bg-white text-[#145A32] border border-[#145A32]/30 text-xs font-bold rounded-lg shadow-xs transition-all flex items-center gap-1.5"
+              >
+                <Contact className="w-4 h-4 text-[#145A32]" />
+                <span>View ID Card</span>
+              </button>
+            ) : (
+              <a
+                href={idCardUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3.5 py-2 bg-[#FDF6E3] hover:bg-white text-[#145A32] border border-[#145A32]/30 text-xs font-bold rounded-lg shadow-xs transition-all flex items-center gap-1.5"
+              >
+                <Contact className="w-4 h-4 text-[#145A32]" />
+                <span>ID Card</span>
+              </a>
+            )}
 
             <a
               href={pdfUrl}

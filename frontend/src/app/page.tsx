@@ -7,6 +7,7 @@ import StudentTable from '@/components/StudentTable';
 import TeacherTable from '@/components/TeacherTable';
 import AdmissionModal from '@/components/AdmissionModal';
 import RecordDetailModal from '@/components/RecordDetailModal';
+import IdCardModal from '@/components/IdCardModal';
 import BulkActionBar from '@/components/BulkActionBar';
 import LoginScreen from '@/components/LoginScreen';
 import DonorDirectory from '@/components/DonorDirectory';
@@ -27,7 +28,7 @@ import {
   deleteTeacher,
   exportSelectedExcel
 } from '@/lib/api';
-import { GraduationCap, Users, UserPlus, RefreshCw, DollarSign, Heart } from 'lucide-react';
+import { GraduationCap, Users, UserPlus, RefreshCw } from 'lucide-react';
 
 export default function DashboardPage() {
   // Authentication State
@@ -54,6 +55,11 @@ export default function DashboardPage() {
 
   const [detailRecord, setDetailRecord] = useState<Student | Teacher | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+
+  // ID Card Modal
+  const [idCardRecord, setIdCardRecord] = useState<Student | Teacher | null>(null);
+  const [idCardType, setIdCardType] = useState<'student' | 'teacher'>('student');
+  const [idCardModalOpen, setIdCardModalOpen] = useState(false);
 
   const [isExporting, setIsExporting] = useState(false);
 
@@ -186,6 +192,14 @@ export default function DashboardPage() {
     setDetailModalOpen(true);
   };
 
+  // View ID Card
+  const handleViewIdCard = (record: Student | Teacher) => {
+    const isStud = 'student_class' in record;
+    setIdCardRecord(record);
+    setIdCardType(isStud ? 'student' : 'teacher');
+    setIdCardModalOpen(true);
+  };
+
   // Export Selected to Excel
   const handleExportSelected = async () => {
     if (activeTab !== 'students' && activeTab !== 'teachers') return;
@@ -298,6 +312,7 @@ export default function DashboardPage() {
               onToggleSelect={handleToggleSelectStudent}
               onToggleSelectAll={handleToggleSelectAllStudents}
               onViewProfile={handleViewDetail}
+              onViewIdCard={handleViewIdCard}
               onEditStudent={handleEditRecord}
               onDeleteStudent={handleDeleteRecord}
               isLoading={loading}
@@ -311,6 +326,7 @@ export default function DashboardPage() {
               onToggleSelect={handleToggleSelectTeacher}
               onToggleSelectAll={handleToggleSelectAllTeachers}
               onViewProfile={handleViewDetail}
+              onViewIdCard={handleViewIdCard}
               onEditTeacher={handleEditRecord}
               onDeleteTeacher={handleDeleteRecord}
               isLoading={loading}
@@ -361,8 +377,20 @@ export default function DashboardPage() {
           setDetailModalOpen(false);
           setDetailRecord(null);
         }}
+        onViewIdCard={handleViewIdCard}
         onEdit={handleEditRecord}
         onDelete={handleDeleteRecord}
+      />
+
+      {/* Official ID Card Preview & Print Modal */}
+      <IdCardModal
+        record={idCardRecord}
+        type={idCardType}
+        isOpen={idCardModalOpen}
+        onClose={() => {
+          setIdCardModalOpen(false);
+          setIdCardRecord(null);
+        }}
       />
     </div>
   );
