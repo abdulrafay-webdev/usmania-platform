@@ -2,26 +2,26 @@ import io
 import os
 import base64
 import urllib.request
+from PIL import Image as PILImage
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, HRFlowable
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 
 def fetch_image_flowable(image_url: str, max_width=1.3*inch, max_height=1.6*inch):
-    """Downloads or decodes image URL/data-uri for ReportLab canvas."""
+    """Downloads or decodes image URL/data-uri for ReportLab canvas thumbnail."""
     if not image_url:
         return None
     try:
         if image_url.startswith("data:image"):
-            # Base64 string
             header, b64 = image_url.split(",", 1)
             img_bytes = base64.b64decode(b64)
             img_io = io.BytesIO(img_bytes)
             img = Image(img_io)
         elif image_url.startswith("http://") or image_url.startswith("https://"):
             req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=5) as response:
+            with urllib.request.urlopen(req, timeout=6) as response:
                 img_data = response.read()
             img_io = io.BytesIO(img_data)
             img = Image(img_io)
@@ -32,7 +32,47 @@ def fetch_image_flowable(image_url: str, max_width=1.3*inch, max_height=1.6*inch
         img.drawWidth = max_width
         img.drawHeight = max_height
         return img
-    except Exception as e:
+    except Exception:
+        return None
+
+def fetch_large_document_flowable(image_url: str, max_width=7.0*inch, max_height=8.2*inch):
+    """
+    Downloads document image and calculates proportional dimensions to fit
+    a full standalone Letter page nicely with clear margins.
+    """
+    if not image_url:
+        return None
+    try:
+        if image_url.startswith("data:image"):
+            header, b64 = image_url.split(",", 1)
+            img_bytes = base64.b64decode(b64)
+        elif image_url.startswith("http://") or image_url.startswith("https://"):
+            req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=8) as response:
+                img_bytes = response.read()
+        else:
+            return None
+
+        # Check dimensions using PIL
+        pil_im = PILImage.open(io.BytesIO(img_bytes))
+        orig_w, orig_h = pil_im.size
+        if orig_w <= 0 or orig_h <= 0:
+            return None
+
+        aspect = orig_w / float(orig_h)
+
+        # Scale proportionally to fit within max_width and max_height
+        target_w = max_width
+        target_h = target_w / aspect
+
+        if target_h > max_height:
+            target_h = max_height
+            target_w = target_h * aspect
+
+        img_io = io.BytesIO(img_bytes)
+        doc_img = Image(img_io, width=target_w, height=target_h)
+        return doc_img
+    except Exception:
         return None
 
 def generate_record_pdf(record_data: dict, record_type: str = "Student") -> bytes:
@@ -105,6 +145,10 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
     )
 
     story = []
+
+    # =========================================================================
+    # PAGE 1: OFFICIAL PROFILE & ADMISSION RECORD
+    # =========================================================================
 
     # 1. Header Banner Table
     header_data = [
@@ -252,19 +296,33 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
         [Paragraph("Previous Institute", label_style), Paragraph(str(record_data.get('previous_institute', 'N/A')), value_style)],
     ]
 
-    # Attached documents summary
+    # Collect attached documents for summary and subsequent pages
+    attached_documents = [] # List of tuples: (doc_title, doc_subtitle, doc_url)
+
     if record_type == "Student":
         doc_list = []
-        if record_data.get('doc_zakat'): doc_list.append("Zakat Document (Attached)")
-        if record_data.get('doc_birth_certificate'): doc_list.append("Birth Certificate (Attached)")
-        if record_data.get('doc_activity_diary'): doc_list.append("Activity Diary (Attached)")
+        if record_data.get('doc_zakat'):
+            doc_list.append("Zakat Document (Attached on Page 2)")
+            attached_documents.append(("ZAKAT DOCUMENT / AFFIDAVIT", "مستحق زکوۃ دستاویز / بیان حلفی", record_data.get('doc_zakat')))
+        if record_data.get('doc_birth_certificate'):
+            doc_list.append("Birth Certificate (Attached)")
+            attached_documents.append(("BIRTH CERTIFICATE / B-FORM", "پیدائشی سرٹیفکیٹ / ب فارم", record_data.get('doc_birth_certificate')))
+        if record_data.get('doc_activity_diary'):
+            doc_list.append("Activity Diary (Attached)")
+            attached_documents.append(("ACTIVITY DIARY / PERFORMANCE REPORT", "کارکردگی ڈائری / تعلیمی ریکارڈ", record_data.get('doc_activity_diary')))
         doc_str = ", ".join(doc_list) if doc_list else "None uploaded (Optional)"
         add_rows.append([Paragraph("Attached Documents", label_style), Paragraph(doc_str, value_style)])
     else:
         doc_list = []
-        if record_data.get('doc_contract'): doc_list.append("Teacher Contract (Attached)")
-        if record_data.get('doc_payslip'): doc_list.append("Payslip Voucher (Attached)")
-        if record_data.get('doc_cnic'): doc_list.append("CNIC Copy (Attached)")
+        if record_data.get('doc_contract'):
+            doc_list.append("Teacher Contract (Attached)")
+            attached_documents.append(("TEACHER CONTRACT / AGREEMENT", "معاہدہ تدریس / ایگریمنٹ", record_data.get('doc_contract')))
+        if record_data.get('doc_payslip'):
+            doc_list.append("Payslip Voucher (Attached)")
+            attached_documents.append(("PAYSLIP / SALARY VOUCHER", "تنخواہ سلپ / بینک واؤچر", record_data.get('doc_payslip')))
+        if record_data.get('doc_cnic'):
+            doc_list.append("CNIC Copy (Attached)")
+            attached_documents.append(("CNIC COPY (FRONT / BACK)", "قومی شناختی کارڈ کی کاپی", record_data.get('doc_cnic')))
         doc_str = ", ".join(doc_list) if doc_list else "None uploaded (Optional)"
         add_rows.append([Paragraph("Attached Documents", label_style), Paragraph(doc_str, value_style)])
 
@@ -295,12 +353,65 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
     story.append(sig_table)
     story.append(Spacer(1, 0.10 * inch))
 
-    # Footer note
+    # Footer note on Page 1
     footer_text = Paragraph(
         "<i>This document is an electronically generated official record of Jamia Usmania Trust. For verification or updates, contact the Trust Administration Office.</i>",
         ParagraphStyle('F', parent=styles['Normal'], fontSize=7.5, textColor=colors.gray, alignment=1)
     )
     story.append(footer_text)
+
+    # =========================================================================
+    # SUBSEQUENT PAGES: 1 DEDICATED FULL PAGE PER ATTACHED IMAGE
+    # =========================================================================
+    for idx, (doc_title, doc_sub, doc_url) in enumerate(attached_documents):
+        doc_img = fetch_large_document_flowable(doc_url, max_width=7.2*inch, max_height=8.0*inch)
+        if not doc_img:
+            continue
+
+        # Create new page
+        story.append(PageBreak())
+
+        # Document Header Banner
+        doc_header_data = [
+            [Paragraph("JAMIA USMANIA TRUST — ATTACHED DOCUMENT", title_style)],
+            [Paragraph(f"{doc_title} ({doc_sub})", subtitle_style)],
+            [
+                Paragraph(
+                    f"Candidate: <b>{record_data.get('name', 'N/A')}</b> &nbsp;|&nbsp; Roll No: <b>{record_data.get('roll_no', 'N/A')}</b> &nbsp;|&nbsp; Attachment #{idx+1}",
+                    ParagraphStyle('DocInfo', parent=subtitle_style, fontSize=9, fontName='Helvetica')
+                )
+            ]
+        ]
+        doc_header_table = Table(doc_header_data, colWidths=[7.5 * inch])
+        doc_header_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), PRIMARY_GREEN),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 10),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        story.append(doc_header_table)
+        story.append(Spacer(1, 0.15 * inch))
+
+        # Full Document Image in framed container
+        img_table = Table([[doc_img]], colWidths=[7.5 * inch])
+        img_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOX', (0, 0), (-1, -1), 1, BORDER_COLOR),
+            ('BACKGROUND', (0, 0), (-1, -1), LIGHT_GRAY),
+            ('PADDING', (0, 0), (-1, -1), 6),
+        ]))
+        story.append(img_table)
+        story.append(Spacer(1, 0.12 * inch))
+
+        # Document Page Footer
+        doc_footer = Paragraph(
+            f"<i>Official Attachment ({doc_title}) for {record_data.get('name', 'Record')} • Jamia Usmania Official Platform</i>",
+            ParagraphStyle('DocFoot', parent=styles['Normal'], fontSize=8, textColor=colors.gray, alignment=1)
+        )
+        story.append(doc_footer)
 
     doc.build(story)
     buffer.seek(0)
