@@ -11,6 +11,7 @@ import {
   Student,
   Teacher
 } from '@/lib/api';
+import { compressImageFile } from '@/lib/imageCompressor';
 import {
   X,
   Upload,
@@ -27,7 +28,6 @@ import {
   Receipt,
   CreditCard,
   Trash2,
-  Eye,
   FileCheck
 } from 'lucide-react';
 
@@ -257,31 +257,42 @@ export default function AdmissionModal({
     setFormData((prev) => ({ ...prev, nic: formatted }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Primary Photo change with auto-compression
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImageFile(file, 1000, 0.80);
+        setSelectedFile(compressed);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(compressed);
+      } catch (err) {
+        setSelectedFile(file);
+      }
     }
   };
 
-  // Generic document file picker handler
-  const handleDocFileChange = (
+  // Generic document file picker with auto-compression
+  const handleDocFileChange = async (
     file: File | undefined,
     setFile: React.Dispatch<React.SetStateAction<File | null>>,
     setPreview: React.Dispatch<React.SetStateAction<string>>
   ) => {
     if (file) {
-      setFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImageFile(file, 1200, 0.80);
+        setFile(compressed);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreview(reader.result as string);
+        };
+        reader.readAsDataURL(compressed);
+      } catch (err) {
+        setFile(file);
+      }
     }
   };
 
@@ -509,12 +520,12 @@ export default function AdmissionModal({
                 </label>
                 {selectedFile && (
                   <span className="text-xs text-emerald-700 font-medium flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> {selectedFile.name}
+                    <CheckCircle2 className="w-3.5 h-3.5" /> {(selectedFile.size / 1024).toFixed(0)} KB (Auto-compressed)
                   </span>
                 )}
               </div>
               <p className="text-[11px] text-gray-400">
-                Supported formats: JPG, PNG, WEBP. Max size: 10MB.
+                Auto-compressed to fast Web format. Supported: JPG, PNG, WEBP.
               </p>
             </div>
           </div>
@@ -965,7 +976,7 @@ export default function AdmissionModal({
                       <label className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#145A32] bg-white rounded-lg p-3 flex flex-col items-center justify-center text-center transition-all h-24">
                         <Upload className="w-4 h-4 text-[#145A32] mb-1" />
                         <span className="text-[11px] font-bold text-gray-700">Upload Zakat Doc</span>
-                        <span className="text-[9px] text-gray-400">JPG, PNG, PDF</span>
+                        <span className="text-[9px] text-gray-400">Auto-compressed</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -1017,7 +1028,7 @@ export default function AdmissionModal({
                       <label className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#145A32] bg-white rounded-lg p-3 flex flex-col items-center justify-center text-center transition-all h-24">
                         <Upload className="w-4 h-4 text-[#145A32] mb-1" />
                         <span className="text-[11px] font-bold text-gray-700">Upload Birth Cert</span>
-                        <span className="text-[9px] text-gray-400">JPG, PNG, PDF</span>
+                        <span className="text-[9px] text-gray-400">Auto-compressed</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -1069,7 +1080,7 @@ export default function AdmissionModal({
                       <label className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#145A32] bg-white rounded-lg p-3 flex flex-col items-center justify-center text-center transition-all h-24">
                         <Upload className="w-4 h-4 text-[#145A32] mb-1" />
                         <span className="text-[11px] font-bold text-gray-700">Upload Diary / Report</span>
-                        <span className="text-[9px] text-gray-400">JPG, PNG, PDF</span>
+                        <span className="text-[9px] text-gray-400">Auto-compressed</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -1126,7 +1137,7 @@ export default function AdmissionModal({
                       <label className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#145A32] bg-white rounded-lg p-3 flex flex-col items-center justify-center text-center transition-all h-24">
                         <Upload className="w-4 h-4 text-[#145A32] mb-1" />
                         <span className="text-[11px] font-bold text-gray-700">Upload Contract</span>
-                        <span className="text-[9px] text-gray-400">JPG, PNG, PDF</span>
+                        <span className="text-[9px] text-gray-400">Auto-compressed</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -1178,7 +1189,7 @@ export default function AdmissionModal({
                       <label className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#145A32] bg-white rounded-lg p-3 flex flex-col items-center justify-center text-center transition-all h-24">
                         <Upload className="w-4 h-4 text-[#145A32] mb-1" />
                         <span className="text-[11px] font-bold text-gray-700">Upload Payslip</span>
-                        <span className="text-[9px] text-gray-400">JPG, PNG, PDF</span>
+                        <span className="text-[9px] text-gray-400">Auto-compressed</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -1230,7 +1241,7 @@ export default function AdmissionModal({
                       <label className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#145A32] bg-white rounded-lg p-3 flex flex-col items-center justify-center text-center transition-all h-24">
                         <Upload className="w-4 h-4 text-[#145A32] mb-1" />
                         <span className="text-[11px] font-bold text-gray-700">Upload CNIC Copy</span>
-                        <span className="text-[9px] text-gray-400">JPG, PNG, PDF</span>
+                        <span className="text-[9px] text-gray-400">Auto-compressed</span>
                         <input
                           type="file"
                           accept="image/*"

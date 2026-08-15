@@ -1,27 +1,61 @@
+import os
+import io
 import base64
 import requests
+from PIL import Image as PILImage
 from app.config import settings
+
+def compress_image_bytes(file_bytes: bytes, max_dimension=1200, quality=80) -> bytes:
+    """
+    Compresses image bytes using PIL to ensure file sizes are small (<200KB),
+    fast to transfer, and well within all serverless function payload limits.
+    """
+    try:
+        im = PILImage.open(io.BytesIO(file_bytes))
+        if im.mode in ("RGBA", "P", "LA"):
+            # Create a clean white background for transparent images
+            bg = PILImage.new("RGB", im.size, (255, 255, 255))
+            if im.mode == "RGBA":
+                bg.paste(im, mask=im.split()[3])
+            else:
+                bg.paste(im)
+            im = bg
+        elif im.mode != "RGB":
+            im = im.convert("RGB")
+
+        # Resize if larger than max_dimension
+        if im.width > max_dimension or im.height > max_dimension:
+            im.thumbnail((max_dimension, max_dimension), PILImage.Resampling.LANCZOS)
+
+        out_buf = io.BytesIO()
+        im.save(out_buf, format="JPEG", quality=quality, optimize=True)
+        compressed = out_buf.getvalue()
+        return compressed
+    except Exception:
+        return file_bytes
 
 def upload_image_to_imagekit(file_bytes: bytes, file_name: str) -> str:
     """
-    Uploads a file to ImageKit.io using Private API Key authorization.
-    Returns the public image URL or fallback URL.
+    Compresses image and uploads to ImageKit.io using Private API Key authorization.
+    Returns the public image URL or lightweight fallback base64 URL.
     """
+    # 1. Compress image bytes first
+    compressed_bytes = compress_image_bytes(file_bytes, max_dimension=1200, quality=80)
+
     if not settings.IMAGEKIT_PRIVATE_KEY or not settings.IMAGEKIT_URL_ENDPOINT:
-        # Fallback for local testing / unconfigured environment
-        b64_data = base64.b64encode(file_bytes).decode('utf-8')
-        mime_type = "image/jpeg"
-        if file_name.lower().endswith(".png"):
-            mime_type = "image/png"
-        elif file_name.lower().endswith(".webp"):
-            mime_type = "image/webp"
-        return f"data:{mime_type};base64,{b64_data}"
+        # Lightweight compressed fallback
+        b64_data = base64.b64encode(compressed_bytes).decode('utf-8')
+        return f"data:image/jpeg;base64,{b64_data}"
 
     try:
         url = "https://upload.imagekit.io/api/v1/files/upload"
+        upload_name = file_name
+        if not (upload_name.lower().endswith(".jpg") or upload_name.lower().endswith(".jpeg")):
+            upload_name = f"{os.path.splitext(file_name)[0]}.jpg" if '.' in file_name else f"{file_name}.jpg"
+
         files = {
-            'file': (file_name, file_bytes),
-            'fileName': file_name,
+            'file': (upload_name, compressed_bytes),
+            'fileName': upload_name,
             'useUniqueFileName': 'true',
             'folder': '/jamia_usmania_photos'
         }
@@ -33,13 +67,13 @@ def upload_image_to_imagekit(file_bytes: bytes, file_name: str) -> str:
         }
 
         res = requests.post(url, files=files, headers=headers, timeout=15)
-        if res.status_code == 200 or res.status_code == 201:
+        if res.status_code in (200, 201):
             data = res.json()
             return data.get("url", "")
         else:
-            # Fallback if ImageKit API returns error
-            b64_data = base64.b64encode(file_bytes).decode('utf-8')
+            # Fallback with compressed bytes
+            b64_data = base64.b64encode(compressed_bytes).decode('utf-8')
             return f"data:image/jpeg;base64,{b64_data}"
-    except Exception as e:
-        b64_data = base64.b64encode(file_bytes).decode('utf-8')
+    except Exception:
+        b64_data = base64.b64encode(compressed_bytes).decode('utf-8')
         return f"data:image/jpeg;base64,{b64_data}"
