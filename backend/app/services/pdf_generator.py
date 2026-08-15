@@ -147,7 +147,6 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
     # 3. Main Info Section: Photo on right, Key Details on Left
     photo_img = fetch_image_flowable(record_data.get('picture', ''))
     if not photo_img:
-        # Placeholder text box
         photo_cell = Paragraph("<b>[ PHOTO ]</b><br/><font size=7 color=gray>No Image Uploaded</font>", ParagraphStyle('P', parent=badge_style, alignment=1))
     else:
         photo_cell = photo_img
@@ -241,9 +240,9 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
         ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
     ]))
     story.append(main_grid)
-    story.append(Spacer(1, 0.12 * inch))
+    story.append(Spacer(1, 0.10 * inch))
 
-    # 4. Institutional & Address Box
+    # 4. Institutional, Address & Attached Documents Box
     add_rows = [
         [Paragraph("Current Address", label_style), Paragraph(str(record_data.get('current_address', 'N/A')), value_style)],
         [Paragraph("Permanent Address", label_style), Paragraph(str(record_data.get('permanent_address', 'N/A')), value_style)],
@@ -252,16 +251,33 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
         [Paragraph("Current Institution", label_style), Paragraph(str(record_data.get('institution', 'Jamia Usmania')), value_style)],
         [Paragraph("Previous Institute", label_style), Paragraph(str(record_data.get('previous_institute', 'N/A')), value_style)],
     ]
+
+    # Attached documents summary
+    if record_type == "Student":
+        doc_list = []
+        if record_data.get('doc_zakat'): doc_list.append("Zakat Document (Attached)")
+        if record_data.get('doc_birth_certificate'): doc_list.append("Birth Certificate (Attached)")
+        if record_data.get('doc_activity_diary'): doc_list.append("Activity Diary (Attached)")
+        doc_str = ", ".join(doc_list) if doc_list else "None uploaded (Optional)"
+        add_rows.append([Paragraph("Attached Documents", label_style), Paragraph(doc_str, value_style)])
+    else:
+        doc_list = []
+        if record_data.get('doc_contract'): doc_list.append("Teacher Contract (Attached)")
+        if record_data.get('doc_payslip'): doc_list.append("Payslip Voucher (Attached)")
+        if record_data.get('doc_cnic'): doc_list.append("CNIC Copy (Attached)")
+        doc_str = ", ".join(doc_list) if doc_list else "None uploaded (Optional)"
+        add_rows.append([Paragraph("Attached Documents", label_style), Paragraph(doc_str, value_style)])
+
     add_table = Table(add_rows, colWidths=[1.8 * inch, 5.7 * inch])
     add_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), LIGHT_GRAY),
         ('BOX', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('PADDING', (0, 0), (-1, -1), 4),
+        ('PADDING', (0, 0), (-1, -1), 3),
         ('LINEBELOW', (0, 0), (-1, -1), 0.5, colors.white),
     ]))
     story.append(add_table)
-    story.append(Spacer(1, 0.25 * inch))
+    story.append(Spacer(1, 0.20 * inch))
 
     # 5. Authorization & Verification Section
     sig_data = [
@@ -277,7 +293,7 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     story.append(sig_table)
-    story.append(Spacer(1, 0.15 * inch))
+    story.append(Spacer(1, 0.10 * inch))
 
     # Footer note
     footer_text = Paragraph(

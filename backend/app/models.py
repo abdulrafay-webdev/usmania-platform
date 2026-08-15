@@ -81,6 +81,11 @@ class Student(SQLModel, table=True):
     hostel_room_no: Optional[str] = Field(default="", description="Hostel Room Number")
     hostel_bed_no: Optional[str] = Field(default="", description="Hostel Bed Number")
 
+    # Optional Student Documents / Images
+    doc_zakat: Optional[str] = Field(default="", description="Zakat Document / Proof Image URL")
+    doc_birth_certificate: Optional[str] = Field(default="", description="Birth Certificate / B-Form Image URL")
+    doc_activity_diary: Optional[str] = Field(default="", description="Activity Diary / Progress Report Image URL")
+
 
 class StudentCreate(SQLModel):
     name: str
@@ -119,6 +124,11 @@ class StudentCreate(SQLModel):
     hostel_room_no: Optional[str] = ""
     hostel_bed_no: Optional[str] = ""
 
+    # Optional Documents
+    doc_zakat: Optional[str] = ""
+    doc_birth_certificate: Optional[str] = ""
+    doc_activity_diary: Optional[str] = ""
+
 
 class StudentUpdate(SQLModel):
     name: Optional[str] = None
@@ -155,6 +165,11 @@ class StudentUpdate(SQLModel):
     hostel_room_no: Optional[str] = None
     hostel_bed_no: Optional[str] = None
 
+    # Optional Documents
+    doc_zakat: Optional[str] = None
+    doc_birth_certificate: Optional[str] = None
+    doc_activity_diary: Optional[str] = None
+
 
 # ----------------- TEACHER SQLMODEL -----------------
 class Teacher(SQLModel, table=True):
@@ -180,6 +195,11 @@ class Teacher(SQLModel, table=True):
     subject: str = Field(default="", description="Subject(s) taught")
     father_guardian_name: Optional[str] = Field(default="")
 
+    # Optional Teacher Documents / Images
+    doc_contract: Optional[str] = Field(default="", description="Teacher Contract / Agreement Document URL")
+    doc_payslip: Optional[str] = Field(default="", description="Payslip / Salary Voucher Image URL")
+    doc_cnic: Optional[str] = Field(default="", description="Teacher CNIC Copy Image URL")
+
 
 class TeacherCreate(SQLModel):
     name: str
@@ -200,6 +220,11 @@ class TeacherCreate(SQLModel):
     subject: str
     father_guardian_name: Optional[str] = ""
 
+    # Optional Documents
+    doc_contract: Optional[str] = ""
+    doc_payslip: Optional[str] = ""
+    doc_cnic: Optional[str] = ""
+
 
 class TeacherUpdate(SQLModel):
     name: Optional[str] = None
@@ -217,6 +242,11 @@ class TeacherUpdate(SQLModel):
     previous_institute: Optional[str] = None
     subject: Optional[str] = None
     father_guardian_name: Optional[str] = None
+
+    # Optional Documents
+    doc_contract: Optional[str] = None
+    doc_payslip: Optional[str] = None
+    doc_cnic: Optional[str] = None
 
 
 class BulkExportRequest(SQLModel):

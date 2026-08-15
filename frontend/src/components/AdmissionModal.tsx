@@ -11,7 +11,25 @@ import {
   Student,
   Teacher
 } from '@/lib/api';
-import { X, Upload, CheckCircle2, UserCheck, AlertCircle, Sparkles, Pencil, HeartHandshake, School, Home, BedDouble, ShieldAlert, Users, Phone } from 'lucide-react';
+import {
+  X,
+  Upload,
+  CheckCircle2,
+  UserCheck,
+  AlertCircle,
+  Sparkles,
+  Pencil,
+  HeartHandshake,
+  School,
+  Home,
+  FileText,
+  BookOpen,
+  Receipt,
+  CreditCard,
+  Trash2,
+  Eye,
+  FileCheck
+} from 'lucide-react';
 
 interface AdmissionModalProps {
   isOpen: boolean;
@@ -32,8 +50,30 @@ export default function AdmissionModal({
   const [role, setRole] = useState<'student' | 'teacher'>(initialRole);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Primary Photograph
   const [imagePreview, setImagePreview] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Student Optional Documents (3 documents)
+  const [docZakatPreview, setDocZakatPreview] = useState<string>('');
+  const [docZakatFile, setDocZakatFile] = useState<File | null>(null);
+
+  const [docBirthCertPreview, setDocBirthCertPreview] = useState<string>('');
+  const [docBirthCertFile, setDocBirthCertFile] = useState<File | null>(null);
+
+  const [docActivityDiaryPreview, setDocActivityDiaryPreview] = useState<string>('');
+  const [docActivityDiaryFile, setDocActivityDiaryFile] = useState<File | null>(null);
+
+  // Teacher Optional Documents (3 documents)
+  const [docContractPreview, setDocContractPreview] = useState<string>('');
+  const [docContractFile, setDocContractFile] = useState<File | null>(null);
+
+  const [docPayslipPreview, setDocPayslipPreview] = useState<string>('');
+  const [docPayslipFile, setDocPayslipFile] = useState<File | null>(null);
+
+  const [docCnicPreview, setDocCnicPreview] = useState<string>('');
+  const [docCnicFile, setDocCnicFile] = useState<File | null>(null);
 
   // Registered Teachers list for dropdown assignment
   const [registeredTeachers, setRegisteredTeachers] = useState<Teacher[]>([]);
@@ -93,6 +133,24 @@ export default function AdmissionModal({
         setSelectedFile(null);
 
         const stud = editRecord as Student;
+        const teach = editRecord as Teacher;
+
+        if (isStud) {
+          setDocZakatPreview(stud.doc_zakat || '');
+          setDocBirthCertPreview(stud.doc_birth_certificate || '');
+          setDocActivityDiaryPreview(stud.doc_activity_diary || '');
+          setDocZakatFile(null);
+          setDocBirthCertFile(null);
+          setDocActivityDiaryFile(null);
+        } else {
+          setDocContractPreview(teach.doc_contract || '');
+          setDocPayslipPreview(teach.doc_payslip || '');
+          setDocCnicPreview(teach.doc_cnic || '');
+          setDocContractFile(null);
+          setDocPayslipFile(null);
+          setDocCnicFile(null);
+        }
+
         setFormData({
           name: editRecord.name || '',
           father_name: stud.father_name || editRecord.father_guardian_name || '',
@@ -130,6 +188,22 @@ export default function AdmissionModal({
         setRole(initialRole);
         setImagePreview('');
         setSelectedFile(null);
+
+        // Reset document files
+        setDocZakatPreview('');
+        setDocZakatFile(null);
+        setDocBirthCertPreview('');
+        setDocBirthCertFile(null);
+        setDocActivityDiaryPreview('');
+        setDocActivityDiaryFile(null);
+
+        setDocContractPreview('');
+        setDocContractFile(null);
+        setDocPayslipPreview('');
+        setDocPayslipFile(null);
+        setDocCnicPreview('');
+        setDocCnicFile(null);
+
         setFormData({
           name: '',
           father_name: '',
@@ -173,7 +247,6 @@ export default function AdmissionModal({
     let val = e.target.value.replace(/\D/g, ''); // strip non-digits
     if (val.length > 13) val = val.substring(0, 13);
 
-    // Format as 42101-1234567-1
     let formatted = val;
     if (val.length > 5 && val.length <= 12) {
       formatted = `${val.slice(0, 5)}-${val.slice(5)}`;
@@ -191,6 +264,22 @@ export default function AdmissionModal({
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Generic document file picker handler
+  const handleDocFileChange = (
+    file: File | undefined,
+    setFile: React.Dispatch<React.SetStateAction<File | null>>,
+    setPreview: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    if (file) {
+      setFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -219,16 +308,36 @@ export default function AdmissionModal({
     setErrorMsg('');
 
     try {
+      // 1. Upload main profile photo if changed
       let pictureUrl = imagePreview;
       if (selectedFile) {
         pictureUrl = await uploadPicture(selectedFile);
       }
 
       if (role === 'student') {
+        // 2. Upload optional student documents
+        let zakatUrl = docZakatPreview;
+        if (docZakatFile) {
+          zakatUrl = await uploadPicture(docZakatFile);
+        }
+
+        let birthCertUrl = docBirthCertPreview;
+        if (docBirthCertFile) {
+          birthCertUrl = await uploadPicture(docBirthCertFile);
+        }
+
+        let activityDiaryUrl = docActivityDiaryPreview;
+        if (docActivityDiaryFile) {
+          activityDiaryUrl = await uploadPicture(docActivityDiaryFile);
+        }
+
         const payload = {
           ...formData,
           father_guardian_name: formData.father_name || formData.guardian_name || '',
-          picture: pictureUrl
+          picture: pictureUrl,
+          doc_zakat: zakatUrl,
+          doc_birth_certificate: birthCertUrl,
+          doc_activity_diary: activityDiaryUrl
         };
 
         if (isEditing && editRecord) {
@@ -240,41 +349,48 @@ export default function AdmissionModal({
           });
         }
       } else {
+        // 3. Upload optional teacher documents
+        let contractUrl = docContractPreview;
+        if (docContractFile) {
+          contractUrl = await uploadPicture(docContractFile);
+        }
+
+        let payslipUrl = docPayslipPreview;
+        if (docPayslipFile) {
+          payslipUrl = await uploadPicture(docPayslipFile);
+        }
+
+        let cnicDocUrl = docCnicPreview;
+        if (docCnicFile) {
+          cnicDocUrl = await uploadPicture(docCnicFile);
+        }
+
+        const payload = {
+          name: formData.name,
+          father_guardian_name: formData.father_guardian_name,
+          email: formData.email,
+          nic: formData.nic,
+          dob: formData.dob,
+          gender: formData.gender,
+          contact: formData.contact,
+          current_address: formData.current_address,
+          permanent_address: formData.permanent_address,
+          city: formData.city,
+          country: formData.country,
+          institution: formData.institution,
+          previous_institute: formData.previous_institute,
+          subject: formData.subject,
+          picture: pictureUrl,
+          doc_contract: contractUrl,
+          doc_payslip: payslipUrl,
+          doc_cnic: cnicDocUrl
+        };
+
         if (isEditing && editRecord) {
-          await updateTeacher(editRecord.id, {
-            name: formData.name,
-            father_guardian_name: formData.father_guardian_name,
-            email: formData.email,
-            nic: formData.nic,
-            dob: formData.dob,
-            gender: formData.gender,
-            contact: formData.contact,
-            current_address: formData.current_address,
-            permanent_address: formData.permanent_address,
-            city: formData.city,
-            country: formData.country,
-            institution: formData.institution,
-            previous_institute: formData.previous_institute,
-            subject: formData.subject,
-            picture: pictureUrl
-          });
+          await updateTeacher(editRecord.id, payload);
         } else {
           await createTeacher({
-            name: formData.name,
-            father_guardian_name: formData.father_guardian_name,
-            email: formData.email,
-            nic: formData.nic,
-            dob: formData.dob,
-            gender: formData.gender,
-            contact: formData.contact,
-            current_address: formData.current_address,
-            permanent_address: formData.permanent_address,
-            city: formData.city,
-            country: formData.country,
-            institution: formData.institution,
-            previous_institute: formData.previous_institute,
-            subject: formData.subject,
-            picture: pictureUrl,
+            ...payload,
             admission_date: formData.admission_date
           });
         }
@@ -290,17 +406,26 @@ export default function AdmissionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-3xl my-8 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-3xl my-6 sm:my-8 overflow-hidden animate-fadeIn">
         {/* Modal Header */}
-        <div className="bg-[#145A32] text-white px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {isEditing ? <Pencil className="w-5 h-5 text-[#FDF6E3]" /> : <UserCheck className="w-5 h-5 text-[#FDF6E3]" />}
-            <h2 className="text-lg font-bold font-serif tracking-wide">
-              {isEditing
-                ? `Edit ${role === 'student' ? 'Student' : 'Teacher'} Record (${editRecord?.roll_no})`
-                : role === 'student' ? 'Student Admission Form' : 'Teacher Registration Form'}
-            </h2>
+        <div className="bg-[#145A32] text-white px-5 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            {isEditing ? (
+              <Pencil className="w-5 h-5 text-[#FDF6E3]" />
+            ) : (
+              <UserCheck className="w-5 h-5 text-[#FDF6E3]" />
+            )}
+            <div>
+              <h2 className="text-base sm:text-lg font-bold font-serif tracking-wide">
+                {isEditing
+                  ? `Edit ${role === 'student' ? 'Student' : 'Teacher'} Record (${editRecord?.roll_no})`
+                  : role === 'student' ? 'Student Admission Form' : 'Teacher Registration Form'}
+              </h2>
+              <p className="text-[11px] text-[#FDF6E3]/80">
+                Jamia Usmania Official Platform Database
+              </p>
+            </div>
           </div>
 
           <button
@@ -313,12 +438,12 @@ export default function AdmissionModal({
 
         {/* Role Switcher Tabs */}
         {!isEditing && (
-          <div className="bg-[#FAF5EA] px-6 py-3 border-b border-gray-200 flex items-center justify-between">
+          <div className="bg-[#FAF5EA] px-4 sm:px-6 py-2.5 sm:py-3 border-b border-gray-200 flex items-center justify-between">
             <div className="flex bg-white rounded-lg p-1 border border-gray-200 shadow-xs">
               <button
                 type="button"
                 onClick={() => setRole('student')}
-                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                className={`px-3 sm:px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
                   role === 'student'
                     ? 'bg-[#145A32] text-white shadow-xs'
                     : 'text-gray-600 hover:text-gray-900'
@@ -329,7 +454,7 @@ export default function AdmissionModal({
               <button
                 type="button"
                 onClick={() => setRole('teacher')}
-                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                className={`px-3 sm:px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
                   role === 'teacher'
                     ? 'bg-[#145A32] text-white shadow-xs'
                     : 'text-gray-600 hover:text-gray-900'
@@ -340,24 +465,24 @@ export default function AdmissionModal({
             </div>
 
             <span className="text-xs text-gray-500 font-medium hidden sm:inline">
-              Jamia Usmania Registration Portal
+              Official Registration
             </span>
           </div>
         )}
 
         {/* Error Alert */}
         {errorMsg && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
+          <div className="mx-4 sm:mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {/* Admission Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6 max-h-[75vh] overflow-y-auto">
           {/* Photo Upload Box */}
-          <div className="flex items-center gap-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
-            <div className="w-20 h-24 rounded-lg bg-gray-200 border border-gray-300 overflow-hidden flex items-center justify-center relative shrink-0">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <div className="w-20 h-24 rounded-lg bg-gray-200 border border-gray-300 overflow-hidden flex items-center justify-center relative shrink-0 shadow-2xs">
               {imagePreview ? (
                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
               ) : (
@@ -367,14 +492,14 @@ export default function AdmissionModal({
               )}
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 text-center sm:text-left">
               <label className="block text-xs font-bold text-gray-700">
-                Photograph (ImageKit Proxy)
+                Candidate Photograph (تصویر برائے شناختی کارڈ و ریکارڈ)
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
                 <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 hover:border-[#145A32] text-gray-700 hover:text-[#145A32] text-xs font-semibold rounded-lg transition-all shadow-xs">
                   <Upload className="w-3.5 h-3.5 text-[#145A32]" />
-                  {isEditing ? 'Change Photograph' : 'Choose File'}
+                  {isEditing ? 'Change Photograph' : 'Choose Photograph'}
                   <input
                     type="file"
                     accept="image/*"
@@ -399,7 +524,7 @@ export default function AdmissionModal({
             {/* Full Name */}
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
-                Student Full Name <span className="text-red-500">*</span>
+                {role === 'student' ? 'Student Full Name' : 'Teacher Full Name'} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -461,7 +586,7 @@ export default function AdmissionModal({
               /* Teacher Father / Guardian Name */
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Father / Guardian Name
+                  Father / Guardian Name (والد / سرپرست کا نام)
                 </label>
                 <input
                   type="text"
@@ -491,7 +616,7 @@ export default function AdmissionModal({
             {/* Email (Optional) */}
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
-                Email Address (Optional)
+                Email Address <span className="text-gray-400 font-normal">(Optional)</span>
               </label>
               <input
                 type="email"
@@ -534,7 +659,7 @@ export default function AdmissionModal({
             {/* Contact Phone */}
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
-                Student Phone / Contact <span className="text-red-500">*</span>
+                Primary Contact Phone <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -786,10 +911,349 @@ export default function AdmissionModal({
               </div>
             )}
 
+            {/* ========================================================================= */}
+            {/* OPTIONAL DOCUMENT UPLOADS SECTION (3 FOR STUDENTS / 3 FOR TEACHERS)       */}
+            {/* ========================================================================= */}
+            <div className="sm:col-span-2 space-y-3 pt-2">
+              <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#145A32] uppercase tracking-wider">
+                  <FileCheck className="w-4 h-4 text-[#145A32]" />
+                  <span>
+                    {role === 'student' ? 'Optional Student Documents' : 'Optional Teacher Documents'}
+                  </span>
+                </div>
+                <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
+                  All 3 Optional (اختیاری)
+                </span>
+              </div>
+
+              {/* Student 3 Documents */}
+              {role === 'student' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* 1. Zakat Document */}
+                  <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col justify-between space-y-2">
+                    <div>
+                      <span className="text-[11px] font-bold text-gray-800 flex items-center gap-1.5">
+                        <HeartHandshake className="w-3.5 h-3.5 text-amber-600" />
+                        Zakat Document / Affidavit
+                      </span>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        مستحق زکوۃ دستاویز / بیان حلفی
+                      </p>
+                    </div>
+
+                    {docZakatPreview ? (
+                      <div className="relative rounded-lg overflow-hidden border border-amber-300 bg-white h-24 flex items-center justify-center">
+                        <img
+                          src={docZakatPreview}
+                          alt="Zakat Document"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDocZakatPreview('');
+                            setDocZakatFile(null);
+                          }}
+                          className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 shadow-xs"
+                          title="Remove document"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#145A32] bg-white rounded-lg p-3 flex flex-col items-center justify-center text-center transition-all h-24">
+                        <Upload className="w-4 h-4 text-[#145A32] mb-1" />
+                        <span className="text-[11px] font-bold text-gray-700">Upload Zakat Doc</span>
+                        <span className="text-[9px] text-gray-400">JPG, PNG, PDF</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handleDocFileChange(
+                              e.target.files?.[0],
+                              setDocZakatFile,
+                              setDocZakatPreview
+                            )
+                          }
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* 2. Birth Certificate */}
+                  <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col justify-between space-y-2">
+                    <div>
+                      <span className="text-[11px] font-bold text-gray-800 flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-blue-600" />
+                        Birth Certificate / B-Form
+                      </span>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        پیدائشی سرٹیفکیٹ / ب فارم
+                      </p>
+                    </div>
+
+                    {docBirthCertPreview ? (
+                      <div className="relative rounded-lg overflow-hidden border border-blue-300 bg-white h-24 flex items-center justify-center">
+                        <img
+                          src={docBirthCertPreview}
+                          alt="Birth Certificate"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDocBirthCertPreview('');
+                            setDocBirthCertFile(null);
+                          }}
+                          className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 shadow-xs"
+                          title="Remove document"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#145A32] bg-white rounded-lg p-3 flex flex-col items-center justify-center text-center transition-all h-24">
+                        <Upload className="w-4 h-4 text-[#145A32] mb-1" />
+                        <span className="text-[11px] font-bold text-gray-700">Upload Birth Cert</span>
+                        <span className="text-[9px] text-gray-400">JPG, PNG, PDF</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handleDocFileChange(
+                              e.target.files?.[0],
+                              setDocBirthCertFile,
+                              setDocBirthCertPreview
+                            )
+                          }
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* 3. Activity Diary */}
+                  <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col justify-between space-y-2">
+                    <div>
+                      <span className="text-[11px] font-bold text-gray-800 flex items-center gap-1.5">
+                        <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+                        Activity Diary / Report
+                      </span>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        کارکردگی ڈائری / تعلیمی ریکارڈ
+                      </p>
+                    </div>
+
+                    {docActivityDiaryPreview ? (
+                      <div className="relative rounded-lg overflow-hidden border border-emerald-300 bg-white h-24 flex items-center justify-center">
+                        <img
+                          src={docActivityDiaryPreview}
+                          alt="Activity Diary"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDocActivityDiaryPreview('');
+                            setDocActivityDiaryFile(null);
+                          }}
+                          className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 shadow-xs"
+                          title="Remove document"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#145A32] bg-white rounded-lg p-3 flex flex-col items-center justify-center text-center transition-all h-24">
+                        <Upload className="w-4 h-4 text-[#145A32] mb-1" />
+                        <span className="text-[11px] font-bold text-gray-700">Upload Diary / Report</span>
+                        <span className="text-[9px] text-gray-400">JPG, PNG, PDF</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handleDocFileChange(
+                              e.target.files?.[0],
+                              setDocActivityDiaryFile,
+                              setDocActivityDiaryPreview
+                            )
+                          }
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Teacher 3 Documents */}
+              {role === 'teacher' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* 1. Teacher Contract */}
+                  <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col justify-between space-y-2">
+                    <div>
+                      <span className="text-[11px] font-bold text-gray-800 flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-[#145A32]" />
+                        Teacher Contract / Agreement
+                      </span>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        معاہدہ تدریس / ایگریمنٹ
+                      </p>
+                    </div>
+
+                    {docContractPreview ? (
+                      <div className="relative rounded-lg overflow-hidden border border-[#145A32]/40 bg-white h-24 flex items-center justify-center">
+                        <img
+                          src={docContractPreview}
+                          alt="Contract"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDocContractPreview('');
+                            setDocContractFile(null);
+                          }}
+                          className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 shadow-xs"
+                          title="Remove document"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#145A32] bg-white rounded-lg p-3 flex flex-col items-center justify-center text-center transition-all h-24">
+                        <Upload className="w-4 h-4 text-[#145A32] mb-1" />
+                        <span className="text-[11px] font-bold text-gray-700">Upload Contract</span>
+                        <span className="text-[9px] text-gray-400">JPG, PNG, PDF</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handleDocFileChange(
+                              e.target.files?.[0],
+                              setDocContractFile,
+                              setDocContractPreview
+                            )
+                          }
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* 2. Payslip */}
+                  <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col justify-between space-y-2">
+                    <div>
+                      <span className="text-[11px] font-bold text-gray-800 flex items-center gap-1.5">
+                        <Receipt className="w-3.5 h-3.5 text-blue-600" />
+                        Payslip / Salary Voucher
+                      </span>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        تنخواہ سلپ / بینک واؤچر
+                      </p>
+                    </div>
+
+                    {docPayslipPreview ? (
+                      <div className="relative rounded-lg overflow-hidden border border-blue-300 bg-white h-24 flex items-center justify-center">
+                        <img
+                          src={docPayslipPreview}
+                          alt="Payslip"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDocPayslipPreview('');
+                            setDocPayslipFile(null);
+                          }}
+                          className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 shadow-xs"
+                          title="Remove document"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#145A32] bg-white rounded-lg p-3 flex flex-col items-center justify-center text-center transition-all h-24">
+                        <Upload className="w-4 h-4 text-[#145A32] mb-1" />
+                        <span className="text-[11px] font-bold text-gray-700">Upload Payslip</span>
+                        <span className="text-[9px] text-gray-400">JPG, PNG, PDF</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handleDocFileChange(
+                              e.target.files?.[0],
+                              setDocPayslipFile,
+                              setDocPayslipPreview
+                            )
+                          }
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* 3. CNIC Document */}
+                  <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col justify-between space-y-2">
+                    <div>
+                      <span className="text-[11px] font-bold text-gray-800 flex items-center gap-1.5">
+                        <CreditCard className="w-3.5 h-3.5 text-amber-700" />
+                        CNIC Copy (Front / Back)
+                      </span>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        قومی شناختی کارڈ کی کاپی
+                      </p>
+                    </div>
+
+                    {docCnicPreview ? (
+                      <div className="relative rounded-lg overflow-hidden border border-amber-300 bg-white h-24 flex items-center justify-center">
+                        <img
+                          src={docCnicPreview}
+                          alt="CNIC Copy"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDocCnicPreview('');
+                            setDocCnicFile(null);
+                          }}
+                          className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 shadow-xs"
+                          title="Remove document"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-[#145A32] bg-white rounded-lg p-3 flex flex-col items-center justify-center text-center transition-all h-24">
+                        <Upload className="w-4 h-4 text-[#145A32] mb-1" />
+                        <span className="text-[11px] font-bold text-gray-700">Upload CNIC Copy</span>
+                        <span className="text-[9px] text-gray-400">JPG, PNG, PDF</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handleDocFileChange(
+                              e.target.files?.[0],
+                              setDocCnicFile,
+                              setDocCnicPreview
+                            )
+                          }
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Address fields */}
             <div className="sm:col-span-2">
               <label className="block text-xs font-bold text-gray-700 mb-1">
-                Current Address
+                Current Residential Address
               </label>
               <textarea
                 rows={2}

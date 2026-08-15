@@ -34,6 +34,11 @@ export interface Student {
   academy_class?: string;
   hostel_room_no?: string;
   hostel_bed_no?: string;
+
+  // Optional Documents / Images
+  doc_zakat?: string;
+  doc_birth_certificate?: string;
+  doc_activity_diary?: string;
 }
 
 export interface Teacher {
@@ -56,6 +61,11 @@ export interface Teacher {
   islamic_date: string;
   subject: string;
   father_guardian_name?: string;
+
+  // Optional Documents / Images
+  doc_contract?: string;
+  doc_payslip?: string;
+  doc_cnic?: string;
 }
 
 // ----------------- FINANCE INTERFACES -----------------
@@ -339,7 +349,7 @@ export async function deleteTeacher(id: string): Promise<void> {
   }
 }
 
-// Upload Picture
+// Upload Picture / Document
 export async function uploadPicture(file: File): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);

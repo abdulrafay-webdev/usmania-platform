@@ -31,6 +31,12 @@ def init_db():
                     "ALTER TABLE student ADD COLUMN father_name VARCHAR DEFAULT '';",
                     "ALTER TABLE student ADD COLUMN guardian_name VARCHAR DEFAULT '';",
                     "ALTER TABLE student ADD COLUMN guardian_contact VARCHAR DEFAULT '';",
+                    "ALTER TABLE student ADD COLUMN doc_zakat VARCHAR DEFAULT '';",
+                    "ALTER TABLE student ADD COLUMN doc_birth_certificate VARCHAR DEFAULT '';",
+                    "ALTER TABLE student ADD COLUMN doc_activity_diary VARCHAR DEFAULT '';",
+                    "ALTER TABLE teacher ADD COLUMN doc_contract VARCHAR DEFAULT '';",
+                    "ALTER TABLE teacher ADD COLUMN doc_payslip VARCHAR DEFAULT '';",
+                    "ALTER TABLE teacher ADD COLUMN doc_cnic VARCHAR DEFAULT '';",
                     "ALTER TABLE loan ADD COLUMN received_in_account VARCHAR DEFAULT 'Cash';"
                 ]:
                     try:
@@ -50,6 +56,12 @@ def init_db():
                 session.exec(text("ALTER TABLE student ADD COLUMN IF NOT EXISTS father_name VARCHAR DEFAULT '';"))
                 session.exec(text("ALTER TABLE student ADD COLUMN IF NOT EXISTS guardian_name VARCHAR DEFAULT '';"))
                 session.exec(text("ALTER TABLE student ADD COLUMN IF NOT EXISTS guardian_contact VARCHAR DEFAULT '';"))
+                session.exec(text("ALTER TABLE student ADD COLUMN IF NOT EXISTS doc_zakat VARCHAR DEFAULT '';"))
+                session.exec(text("ALTER TABLE student ADD COLUMN IF NOT EXISTS doc_birth_certificate VARCHAR DEFAULT '';"))
+                session.exec(text("ALTER TABLE student ADD COLUMN IF NOT EXISTS doc_activity_diary VARCHAR DEFAULT '';"))
+                session.exec(text("ALTER TABLE teacher ADD COLUMN IF NOT EXISTS doc_contract VARCHAR DEFAULT '';"))
+                session.exec(text("ALTER TABLE teacher ADD COLUMN IF NOT EXISTS doc_payslip VARCHAR DEFAULT '';"))
+                session.exec(text("ALTER TABLE teacher ADD COLUMN IF NOT EXISTS doc_cnic VARCHAR DEFAULT '';"))
                 session.exec(text("ALTER TABLE loan ADD COLUMN IF NOT EXISTS received_in_account VARCHAR DEFAULT 'Cash';"))
             session.commit()
         except Exception:
