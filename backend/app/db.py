@@ -6,10 +6,17 @@ if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
 connect_args = {}
+engine_kwargs = {"echo": False}
+
 if db_url.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
+    engine_kwargs["connect_args"] = connect_args
+else:
+    # Production PostgreSQL (Neon Serverless) settings
+    engine_kwargs["pool_pre_ping"] = True
+    engine_kwargs["pool_recycle"] = 300
 
-engine = create_engine(db_url, echo=False, connect_args=connect_args)
+engine = create_engine(db_url, **engine_kwargs)
 
 def init_db():
     SQLModel.metadata.create_all(engine)
