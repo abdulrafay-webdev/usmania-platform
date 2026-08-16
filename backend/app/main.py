@@ -3,25 +3,25 @@ from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.db import init_db
-from app.routers import students, teachers, upload, auth, finance, donors
+from app.routers import auth, users, roles, students, teachers, finance, donors, upload
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize DB tables on application launch
+    # Initialize DB tables and seed initial roles & Super Admin on launch
     try:
         init_db()
     except Exception as e:
-        print("init_db error on startup:", e)
+        print("[Lifespan] Error initializing and seeding database:", e)
     yield
 
 app = FastAPI(
     title="Jamia Usmania Trust — Madrasa Management API",
-    description="Backend API for managing Student & Teacher records, Finance Module, Donors Directory & Comments, Hijri date conversion, PDF profile exports, and Excel bulk exports.",
-    version="1.2.0",
+    description="Backend API for managing Student & Teacher records, Finance Module, RBAC Users & Roles, Donors Directory, Hijri date conversion, PDF exports, and Excel exports.",
+    version="1.3.0",
     lifespan=lifespan
 )
 
-# Custom CORS and Exception Handler Middleware to guarantee Access-Control headers
+# Custom CORS and Exception Handler Middleware
 @app.middleware("http")
 async def add_cors_headers_middleware(request: Request, call_next):
     # Fast path for OPTIONS preflight
@@ -41,8 +41,8 @@ async def add_cors_headers_middleware(request: Request, call_next):
     response.headers["Access-Control-Allow-Origin"] = origin
     response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
-    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, User-Agent, DNT, Cache-Control, X-Mx-ReqToken, X-Requested-With"
-    response.headers["Access-Control-Expose-Headers"] = "Content-Disposition, Content-Length"
+    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, Origin, User-Agent, DNT, Cache-Control, X-Mx-ReqToken, X-Requested-With, Cookie"
+    response.headers["Access-Control-Expose-Headers"] = "Content-Disposition, Content-Length, Set-Cookie"
     return response
 
 # Standard CORSMiddleware
@@ -63,6 +63,8 @@ app.add_middleware(
 
 # Include API Routers
 app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(roles.router)
 app.include_router(students.router)
 app.include_router(teachers.router)
 app.include_router(finance.router)
@@ -74,7 +76,7 @@ def read_root():
     return {
         "status": "online",
         "app": "Jamia Usmania Trust Management API",
-        "version": "1.2.0",
+        "version": "1.3.0",
         "docs": "/docs"
     }
 

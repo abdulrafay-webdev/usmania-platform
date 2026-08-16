@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
   title: "Jamia Usmania Trust — Madrasa Management Portal",
-  description: "Official Madrasa Student & Teacher Management System. Handles admissions, profile records, Hijri date conversion, PDF export, and bulk Excel export.",
+  description: "Official Madrasa Student & Teacher Management System, Finance Module, RBAC Roles & Access Control.",
 };
 
 export default function RootLayout({
@@ -13,7 +14,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-[#F8FAFC]">{children}</body>
+      <body className="min-h-full flex flex-col bg-[#F8FAFC]">
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }

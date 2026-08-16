@@ -2,20 +2,26 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { getFinanceKindDonations, createFinanceKindDonation, KindDonation } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import { Plus, Search, Gift, X, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function FinanceKindDonation() {
+  const { hasPermission, isCreateOnly } = useAuth();
+  const canView = hasPermission('finance_kind_donation', 'view');
+  const canCreate = hasPermission('finance_kind_donation', 'create');
+
   const [donations, setDonations] = useState<KindDonation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(canView);
 
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Modal State
+  // Modal & Success State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [createOnlySuccess, setCreateOnlySuccess] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -31,6 +37,7 @@ export default function FinanceKindDonation() {
   });
 
   const fetchDonations = useCallback(async () => {
+    if (!canView) return;
     setLoading(true);
     try {
       const data = await getFinanceKindDonations({
@@ -43,11 +50,13 @@ export default function FinanceKindDonation() {
     } finally {
       setLoading(false);
     }
-  }, [categoryFilter, searchQuery]);
+  }, [canView, categoryFilter, searchQuery]);
 
   useEffect(() => {
-    fetchDonations();
-  }, [fetchDonations]);
+    if (canView) {
+      fetchDonations();
+    }
+  }, [canView, fetchDonations]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +83,9 @@ export default function FinanceKindDonation() {
         condition: formData.condition,
         notes: formData.notes
       });
-      setIsModalOpen(false);
+
+      const successText = `In-kind donation '${formData.item_name}' from ${formData.donor_name} recorded successfully.`;
+
       setFormData({
         date: new Date().toISOString().split('T')[0],
         item_name: '',
@@ -86,7 +97,13 @@ export default function FinanceKindDonation() {
         condition: 'New',
         notes: ''
       });
-      fetchDonations();
+
+      if (canView) {
+        setIsModalOpen(false);
+        fetchDonations();
+      } else {
+        setCreateOnlySuccess(successText);
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to record in-kind donation');
     } finally {
@@ -96,6 +113,180 @@ export default function FinanceKindDonation() {
 
   const totalEstimatedValue = donations.reduce((sum, item) => sum + (item.estimated_value || 0), 0);
 
+  // -------------------------------------------------------------
+  // CREATE-ONLY MODE (e.g. Data Entry Operator: can_create && !can_view)
+  // -------------------------------------------------------------
+  if (!canView && canCreate) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6 animate-fadeIn">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-[#145A32] text-white p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                <Gift className="w-5 h-5 text-[#FDF6E3]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold font-serif text-[#FDF6E3]">
+                  New In-Kind Donation Entry (اشیاء برائے عطیہ)
+                </h2>
+                <p className="text-xs text-[#FDF6E3]/80">
+                  Data Entry Operator Mode — Submit physical item donations directly to database
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 sm:p-8">
+            {createOnlySuccess && (
+              <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3 animate-fadeIn">
+                <div className="flex items-center gap-2 text-emerald-800 text-sm font-bold">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <span>{createOnlySuccess}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCreateOnlySuccess(null)}
+                  className="px-4 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Record Another In-Kind Item</span>
+                </button>
+              </div>
+            )}
+
+            {errorMsg && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {!createOnlySuccess && (
+              <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Item Category (قسم) *</label>
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                    >
+                      <option value="Furniture">Furniture (فرنیچر)</option>
+                      <option value="Food">Food / Ration (راشن / خوراک)</option>
+                      <option value="Books">Books & Quran (کتب و قرآن)</option>
+                      <option value="Clothing">Clothing & Blankets (کپڑے / کمبل)</option>
+                      <option value="Equipment">Equipment / Electronics (آلات)</option>
+                      <option value="Other">Other (دیگر)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Date *</label>
+                    <input
+                      type="date"
+                      required
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Item Name / Description (چیز کا نام) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.item_name}
+                    onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
+                    placeholder="e.g. 50 Ceiling Fans / 100 Blankets / 20 Bags Rice"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Quantity (تعداد) *</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      value={formData.quantity}
+                      onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Estimated Value (PKR)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.estimated_value}
+                      onChange={(e) => setFormData({ ...formData, estimated_value: e.target.value })}
+                      placeholder="e.g. 75000"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Donor Name (عطیہ دینے والے کا نام) *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.donor_name}
+                      onChange={(e) => setFormData({ ...formData, donor_name: e.target.value })}
+                      placeholder="e.g. Sheikh Imran"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1">Donor Contact Number</label>
+                    <input
+                      type="text"
+                      value={formData.donor_contact}
+                      onChange={(e) => setFormData({ ...formData, donor_contact: e.target.value })}
+                      placeholder="0300-1234567"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Condition & Additional Notes</label>
+                  <textarea
+                    rows={2}
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="New in boxes / Used good condition / Allocated to Hostel Block B"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                  />
+                </div>
+
+                <div className="pt-4 border-t border-gray-200">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full py-3 bg-[#145A32] hover:bg-[#0E4124] text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{submitting ? 'Submitting Item...' : 'Submit In-Kind Donation'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // -------------------------------------------------------------
+  // STANDARD VIEW MODE (can_view = true)
+  // -------------------------------------------------------------
   return (
     <div className="space-y-6">
       {/* Top Action Bar */}
@@ -114,16 +305,18 @@ export default function FinanceKindDonation() {
             Est. Value: <span className="font-mono text-sm">~ PKR {totalEstimatedValue.toLocaleString('en-PK')}</span>
           </div>
 
-          <button
-            onClick={() => {
-              setErrorMsg('');
-              setIsModalOpen(true);
-            }}
-            className="px-4 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center gap-1.5"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ New Kind Donation</span>
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => {
+                setErrorMsg('');
+                setIsModalOpen(true);
+              }}
+              className="px-4 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ New Kind Donation</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -149,14 +342,14 @@ export default function FinanceKindDonation() {
         >
           <option value="">All Categories</option>
           <option value="Furniture">Furniture</option>
-          <option value="Food">Food</option>
-          <option value="Clothing">Clothing</option>
+          <option value="Food">Food / Ration</option>
           <option value="Books">Books</option>
+          <option value="Clothing">Clothing</option>
           <option value="Other">Other</option>
         </select>
       </div>
 
-      {/* Kind Donations Table */}
+      {/* Donations Table */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
@@ -166,7 +359,7 @@ export default function FinanceKindDonation() {
         ) : donations.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-gray-500 text-sm font-bold">No In-Kind Donations Found</p>
-            <p className="text-gray-400 text-xs mt-1">Add a new item or adjust category filters.</p>
+            <p className="text-gray-400 text-xs mt-1">Record items donated to the institution.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -174,12 +367,11 @@ export default function FinanceKindDonation() {
               <thead>
                 <tr className="bg-[#FAF5EA]/80 border-b border-gray-200 text-xs font-semibold text-[#145A32]">
                   <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Item Name</th>
+                  <th className="py-3 px-4">Item Details</th>
                   <th className="py-3 px-3">Category</th>
                   <th className="py-3 px-3">Quantity</th>
-                  <th className="py-3 px-3">Condition</th>
-                  <th className="py-3 px-4">Donor Name</th>
                   <th className="py-3 px-4">Est. Value (PKR)</th>
+                  <th className="py-3 px-4">Donor Name & Contact</th>
                   <th className="py-3 px-4">Notes</th>
                 </tr>
               </thead>
@@ -187,30 +379,24 @@ export default function FinanceKindDonation() {
                 {donations.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50/80 transition-colors">
                     <td className="py-3 px-4 text-xs font-semibold text-gray-700">{item.date}</td>
-                    <td className="py-3 px-4 font-bold text-gray-900">{item.item_name}</td>
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-gray-900">{item.item_name}</div>
+                      <div className="text-[11px] text-gray-400">Condition: {item.condition || 'New'}</div>
+                    </td>
                     <td className="py-3 px-3">
-                      <span className="inline-block px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold rounded">
+                      <span className="inline-block px-2.5 py-0.5 bg-purple-50 border border-purple-200 text-purple-800 text-xs font-bold rounded">
                         {item.category}
                       </span>
                     </td>
-                    <td className="py-3 px-3 font-mono font-semibold text-gray-800">{item.quantity}</td>
-                    <td className="py-3 px-3">
-                      <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded ${
-                        item.condition === 'New' ? 'bg-blue-50 text-blue-800' : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {item.condition || 'New'}
-                      </span>
+                    <td className="py-3 px-3 font-mono font-bold text-gray-800">{item.quantity}x</td>
+                    <td className="py-3 px-4 font-mono font-bold text-emerald-700">
+                      {item.estimated_value ? `~ PKR ${item.estimated_value.toLocaleString('en-PK')}` : '—'}
                     </td>
                     <td className="py-3 px-4">
                       <div className="font-semibold text-gray-900">{item.donor_name}</div>
                       {item.donor_contact && <div className="text-[11px] text-gray-400">{item.donor_contact}</div>}
                     </td>
-                    <td className="py-3 px-4 font-mono font-semibold text-gray-900">
-                      {item.estimated_value ? `PKR ${item.estimated_value.toLocaleString('en-PK')}` : '—'}
-                    </td>
-                    <td className="py-3 px-4 text-xs text-gray-600">
-                      {item.notes || '—'}
-                    </td>
+                    <td className="py-3 px-4 text-xs text-gray-600">{item.notes || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -219,15 +405,15 @@ export default function FinanceKindDonation() {
         )}
       </div>
 
-      {/* New Kind Donation Modal */}
+      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-lg overflow-hidden">
             <div className="bg-[#145A32] text-white px-6 py-4 flex items-center justify-between">
               <h3 className="font-bold text-base font-serif flex items-center gap-2">
-                <Gift className="w-5 h-5 text-[#FDF6E3]" /> Record In-Kind (Non-Cash) Donation
+                <Gift className="w-5 h-5 text-[#FDF6E3]" /> Record In-Kind Donation
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-white/80 hover:text-white">
+              <button onClick={() => setIsModalOpen(false)} className="text-white/80 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -239,52 +425,48 @@ export default function FinanceKindDonation() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Item Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.item_name}
-                  onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
-                  placeholder="e.g. Wooden Beds, Blankets, Rice Bags (50kg)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
-                />
-              </div>
-
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                {/* Category */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Category *</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Item Category *</label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
                   >
                     <option value="Furniture">Furniture</option>
-                    <option value="Food">Food</option>
-                    <option value="Clothing">Clothing</option>
-                    <option value="Books">Books</option>
+                    <option value="Food">Food / Ration</option>
+                    <option value="Books">Books & Quran</option>
+                    <option value="Clothing">Clothing & Blankets</option>
                     <option value="Other">Other</option>
                   </select>
                 </div>
 
-                {/* Condition */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Item Condition</label>
-                  <select
-                    value={formData.condition}
-                    onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
-                  >
-                    <option value="New">New</option>
-                    <option value="Used">Used</option>
-                  </select>
+                  />
                 </div>
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Item Name / Description *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.item_name}
+                  onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
+                  placeholder="e.g. 50 Ceiling Fans / 100 Blankets / 20 Bags Rice"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
-                {/* Quantity */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Quantity *</label>
                   <input
@@ -297,54 +479,51 @@ export default function FinanceKindDonation() {
                   />
                 </div>
 
-                {/* Estimated Value */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Estimated Value (PKR)</label>
                   <input
                     type="number"
                     min="0"
-                    step="any"
                     value={formData.estimated_value}
                     onChange={(e) => setFormData({ ...formData, estimated_value: e.target.value })}
-                    placeholder="15000"
+                    placeholder="e.g. 75000"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
                   />
                 </div>
               </div>
 
-              {/* Donor Name */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Donor Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.donor_name}
-                  onChange={(e) => setFormData({ ...formData, donor_name: e.target.value })}
-                  placeholder="Sheikh Rashid Mahmood"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Donor Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.donor_name}
+                    onChange={(e) => setFormData({ ...formData, donor_name: e.target.value })}
+                    placeholder="e.g. Sheikh Imran"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Donor Contact Number</label>
+                  <input
+                    type="text"
+                    value={formData.donor_contact}
+                    onChange={(e) => setFormData({ ...formData, donor_contact: e.target.value })}
+                    placeholder="0300-1234567"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                  />
+                </div>
               </div>
 
-              {/* Donor Contact */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Donor Contact (Optional)</label>
-                <input
-                  type="text"
-                  value={formData.donor_contact}
-                  onChange={(e) => setFormData({ ...formData, donor_contact: e.target.value })}
-                  placeholder="0300-1234567"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
-                />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Notes / Description (Optional)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Condition & Additional Notes</label>
                 <textarea
                   rows={2}
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="e.g. Delivered to hostel room 3..."
+                  placeholder="New in boxes / Used good condition / Allocated to Hostel Block B"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
                 />
               </div>
@@ -353,17 +532,17 @@ export default function FinanceKindDonation() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-100"
+                  className="px-4 py-2 border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-100 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-5 py-2 bg-[#145A32] hover:bg-[#0E4124] text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>{submitting ? 'Saving...' : 'Save In-Kind Donation'}</span>
+                  <span>{submitting ? 'Recording...' : 'Record Item'}</span>
                 </button>
               </div>
             </form>

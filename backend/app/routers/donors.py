@@ -8,15 +8,17 @@ from app.db import get_session
 from app.models import (
     Donor, DonorCreate, DonorUpdate,
     DonorComment, DonorCommentCreate,
-    ReceivedEntry, KindDonation
+    ReceivedEntry, KindDonation, User
 )
+from app.dependencies import require_permission
 
 router = APIRouter(prefix="/api/donors", tags=["donors"])
 
 @router.get("")
 def list_donors(
     q: Optional[str] = Query(None, description="Search donor name or contact"),
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_received", "view"))
 ):
     # 1. Fetch all explicit Donors in DB
     donors = session.exec(select(Donor)).all()
@@ -70,21 +72,17 @@ def list_donors(
     for c in all_comments:
         comment_count_map[c.donor_id] = comment_count_map.get(c.donor_id, 0) + 1
 
-    # Map donations per donor
-    # Match by donor_id or matching name/contact
     results = []
     for d in all_donors:
         d_name_clean = d.name.strip().lower()
         d_contact_clean = (d.contact or "").strip()
 
-        # Cash donations
         matched_cash = [
             r for r in received_donations
             if r.payer_name.strip().lower() == d_name_clean or (d_contact_clean and r.payer_contact and r.payer_contact.strip() == d_contact_clean)
         ]
         total_cash = sum(r.amount for r in matched_cash)
 
-        # In-kind donations
         matched_kind = [
             k for k in kind_donations
             if k.donor_name.strip().lower() == d_name_clean or (d_contact_clean and k.donor_contact and k.donor_contact.strip() == d_contact_clean)
@@ -92,11 +90,9 @@ def list_donors(
         total_kind_count = len(matched_kind)
         total_kind_val = sum(k.estimated_value or 0 for k in matched_kind)
 
-        # Dates
         dates = [r.date for r in matched_cash] + [k.date for k in matched_kind]
         latest_date = max(dates).strftime("%Y-%m-%d") if dates else None
 
-        # Filter query if provided
         if q:
             q_clean = q.strip().lower()
             if q_clean not in d_name_clean and q_clean not in d_contact_clean.lower() and q_clean not in (d.email or '').lower():
@@ -125,7 +121,11 @@ def list_donors(
 
 
 @router.get("/{donor_id}")
-def get_donor_detail(donor_id: str, session: Session = Depends(get_session)):
+def get_donor_detail(
+    donor_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_received", "view"))
+):
     donor = session.get(Donor, donor_id)
     if not donor:
         raise HTTPException(status_code=404, detail="Donor not found")
@@ -133,7 +133,6 @@ def get_donor_detail(donor_id: str, session: Session = Depends(get_session)):
     d_name_clean = donor.name.strip().lower()
     d_contact_clean = (donor.contact or "").strip()
 
-    # Cash donations
     received_donations = session.exec(
         select(ReceivedEntry).where(ReceivedEntry.entry_type == "Donation")
     ).all()
@@ -143,7 +142,6 @@ def get_donor_detail(donor_id: str, session: Session = Depends(get_session)):
     ]
     matched_cash.sort(key=lambda x: x.date, reverse=True)
 
-    # In-kind donations
     kind_donations = session.exec(select(KindDonation)).all()
     matched_kind = [
         k for k in kind_donations
@@ -151,7 +149,6 @@ def get_donor_detail(donor_id: str, session: Session = Depends(get_session)):
     ]
     matched_kind.sort(key=lambda x: x.date, reverse=True)
 
-    # Comments
     comments = session.exec(
         select(DonorComment).where(DonorComment.donor_id == donor_id).order_by(DonorComment.created_at.desc())
     ).all()
@@ -172,8 +169,12 @@ def get_donor_detail(donor_id: str, session: Session = Depends(get_session)):
 
 
 @router.post("", response_model=Donor)
-def create_donor(payload: DonorCreate, session: Session = Depends(get_session)):
-    donor = Donor.from_orm(payload)
+def create_donor(
+    payload: DonorCreate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_received", "create"))
+):
+    donor = Donor.model_validate(payload)
     session.add(donor)
     session.commit()
     session.refresh(donor)
@@ -181,12 +182,17 @@ def create_donor(payload: DonorCreate, session: Session = Depends(get_session)):
 
 
 @router.put("/{donor_id}", response_model=Donor)
-def update_donor(donor_id: str, payload: DonorUpdate, session: Session = Depends(get_session)):
+def update_donor(
+    donor_id: str,
+    payload: DonorUpdate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_received", "edit"))
+):
     donor = session.get(Donor, donor_id)
     if not donor:
         raise HTTPException(status_code=404, detail="Donor not found")
 
-    update_data = payload.dict(exclude_unset=True)
+    update_data = payload.model_dump(exclude_unset=True)
     for k, v in update_data.items():
         setattr(donor, k, v)
 
@@ -197,12 +203,15 @@ def update_donor(donor_id: str, payload: DonorUpdate, session: Session = Depends
 
 
 @router.delete("/{donor_id}")
-def delete_donor(donor_id: str, session: Session = Depends(get_session)):
+def delete_donor(
+    donor_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_received", "delete"))
+):
     donor = session.get(Donor, donor_id)
     if not donor:
         raise HTTPException(status_code=404, detail="Donor not found")
 
-    # Delete comments as well
     comments = session.exec(select(DonorComment).where(DonorComment.donor_id == donor_id)).all()
     for c in comments:
         session.delete(c)
@@ -215,7 +224,11 @@ def delete_donor(donor_id: str, session: Session = Depends(get_session)):
 # ----------------- DONOR COMMENTS -----------------
 
 @router.get("/{donor_id}/comments", response_model=List[DonorComment])
-def get_donor_comments(donor_id: str, session: Session = Depends(get_session)):
+def get_donor_comments(
+    donor_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_received", "view"))
+):
     donor = session.get(Donor, donor_id)
     if not donor:
         raise HTTPException(status_code=404, detail="Donor not found")
@@ -230,7 +243,8 @@ def get_donor_comments(donor_id: str, session: Session = Depends(get_session)):
 def add_donor_comment(
     donor_id: str,
     payload: DonorCommentCreate,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_received", "create"))
 ):
     donor = session.get(Donor, donor_id)
     if not donor:
@@ -260,7 +274,8 @@ def add_donor_comment(
 def delete_donor_comment(
     donor_id: str,
     comment_id: str,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_received", "delete"))
 ):
     comment = session.get(DonorComment, comment_id)
     if not comment or comment.donor_id != donor_id:

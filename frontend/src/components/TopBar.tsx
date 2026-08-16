@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Search, Calendar, ShieldCheck, LogOut, Menu } from 'lucide-react';
+import { Search, Calendar, ShieldCheck, LogOut, Menu, UserCheck } from 'lucide-react';
 import { MainTabType } from './Sidebar';
+import { useAuth } from '@/context/AuthContext';
 
 interface TopBarProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   activeTab: MainTabType;
-  userEmail?: string;
   onLogout?: () => void;
   onMenuClick?: () => void;
 }
@@ -17,10 +17,11 @@ export default function TopBar({
   searchQuery,
   onSearchChange,
   activeTab,
-  userEmail = 'usmaniatrust@gmail.com',
   onLogout,
   onMenuClick
 }: TopBarProps) {
+  const { currentUser, currentRole } = useAuth();
+
   const todayGregorian = new Date().toLocaleDateString('en-US', {
     weekday: 'short',
     year: 'numeric',
@@ -36,8 +37,18 @@ export default function TopBar({
     if (activeTab === 'finance-debit') return 'Search debits...';
     if (activeTab === 'finance-kind-donation') return 'Search items...';
     if (activeTab === 'finance-loan') return 'Search loans...';
+    if (activeTab === 'settings-users') return 'Search settings...';
     return 'Search records...';
   };
+
+  const initials = currentUser?.name
+    ? currentUser.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase()
+    : 'JU';
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 fixed top-0 right-0 left-0 md:left-64 z-30 flex items-center justify-between px-3 sm:px-6 shadow-xs gap-2 sm:gap-4">
@@ -77,25 +88,25 @@ export default function TopBar({
 
       {/* Right Controls */}
       <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-        {/* Date Display (Hidden on very small mobile screens) */}
+        {/* Date Display */}
         <div className="hidden lg:flex items-center gap-2 bg-[#FDF6E3] px-3 py-1.5 rounded-lg border border-[#145A32]/20 text-xs font-medium text-[#145A32]">
           <Calendar className="w-3.5 h-3.5" />
           <span>{todayGregorian}</span>
         </div>
 
-        {/* User / Admin Indicator */}
+        {/* User / Role Indicator */}
         <div className="flex items-center gap-2 sm:gap-3 pl-1 sm:pl-2 border-l border-gray-200">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-[#145A32] text-[#FDF6E3] flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
-              JU
+              {initials}
             </div>
             <div className="hidden sm:flex flex-col">
               <span className="text-xs font-bold text-gray-800 flex items-center gap-1">
-                Admin
-                <ShieldCheck className="w-3 h-3 text-[#145A32]" />
+                {currentUser?.name || 'User'}
+                <ShieldCheck className="w-3.5 h-3.5 text-[#145A32]" />
               </span>
               <span className="text-[10px] text-gray-500 max-w-[120px] md:max-w-[140px] truncate">
-                {userEmail}
+                {currentRole?.name || currentUser?.email || 'Authorized'}
               </span>
             </div>
           </div>
@@ -103,7 +114,7 @@ export default function TopBar({
           {onLogout && (
             <button
               onClick={onLogout}
-              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />

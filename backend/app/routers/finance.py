@@ -9,9 +9,11 @@ from app.models import (
     DebitEntry, DebitEntryCreate,
     KindDonation, KindDonationCreate,
     Loan, LoanCreate,
-    LoanPayment, LoanPaymentCreate
+    LoanPayment, LoanPaymentCreate,
+    User
 )
 from app.services.excel_generator import generate_finance_excel
+from app.dependencies import require_permission
 
 router = APIRouter(prefix="/api/finance", tags=["Finance"])
 
@@ -41,9 +43,12 @@ def calculate_account_balances(session: Session) -> Dict[str, Any]:
 
 # ----------------- 1. RECEIVED ENDPOINTS -----------------
 @router.post("/received", response_model=ReceivedEntry, status_code=201)
-def create_received_entry(payload: ReceivedEntryCreate, session: Session = Depends(get_session)):
+def create_received_entry(
+    payload: ReceivedEntryCreate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_received", "create"))
+):
     rec_date = payload.date or date.today()
-    # Force account to Cash if mode is Cash
     account = "Cash" if payload.mode == "Cash" else payload.account
 
     entry = ReceivedEntry(
@@ -69,7 +74,8 @@ def list_received_entries(
     entry_type: Optional[str] = None,
     account: Optional[str] = None,
     q: Optional[str] = None,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_received", "view"))
 ):
     statement = select(ReceivedEntry).order_by(ReceivedEntry.date.desc(), ReceivedEntry.created_at.desc())
 
@@ -94,16 +100,37 @@ def list_received_entries(
     return session.exec(statement).all()
 
 @router.get("/received/{entry_id}", response_model=ReceivedEntry)
-def get_received_entry(entry_id: str, session: Session = Depends(get_session)):
+def get_received_entry(
+    entry_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_received", "view"))
+):
     entry = session.get(ReceivedEntry, entry_id)
     if not entry:
         raise HTTPException(status_code=404, detail="Received entry not found")
     return entry
 
+@router.delete("/received/{entry_id}")
+def delete_received_entry(
+    entry_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_received", "delete"))
+):
+    entry = session.get(ReceivedEntry, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Received entry not found")
+    session.delete(entry)
+    session.commit()
+    return {"message": "Received entry deleted successfully", "id": entry_id}
+
 
 # ----------------- 2. DEBIT ENDPOINTS -----------------
 @router.post("/debit", response_model=DebitEntry, status_code=201)
-def create_debit_entry(payload: DebitEntryCreate, session: Session = Depends(get_session)):
+def create_debit_entry(
+    payload: DebitEntryCreate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_debit", "create"))
+):
     deb_date = payload.date or date.today()
 
     entry = DebitEntry(
@@ -124,7 +151,8 @@ def list_debit_entries(
     date_to: Optional[date] = None,
     account: Optional[str] = None,
     q: Optional[str] = None,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_debit", "view"))
 ):
     statement = select(DebitEntry).order_by(DebitEntry.date.desc(), DebitEntry.created_at.desc())
 
@@ -146,16 +174,37 @@ def list_debit_entries(
     return session.exec(statement).all()
 
 @router.get("/debit/{entry_id}", response_model=DebitEntry)
-def get_debit_entry(entry_id: str, session: Session = Depends(get_session)):
+def get_debit_entry(
+    entry_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_debit", "view"))
+):
     entry = session.get(DebitEntry, entry_id)
     if not entry:
         raise HTTPException(status_code=404, detail="Debit entry not found")
     return entry
 
+@router.delete("/debit/{entry_id}")
+def delete_debit_entry(
+    entry_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_debit", "delete"))
+):
+    entry = session.get(DebitEntry, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Debit entry not found")
+    session.delete(entry)
+    session.commit()
+    return {"message": "Debit entry deleted successfully", "id": entry_id}
+
 
 # ----------------- 3. KIND DONATION ENDPOINTS -----------------
 @router.post("/kind-donation", response_model=KindDonation, status_code=201)
-def create_kind_donation(payload: KindDonationCreate, session: Session = Depends(get_session)):
+def create_kind_donation(
+    payload: KindDonationCreate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_kind_donation", "create"))
+):
     don_date = payload.date or date.today()
 
     donation = KindDonation(
@@ -178,7 +227,8 @@ def create_kind_donation(payload: KindDonationCreate, session: Session = Depends
 def list_kind_donations(
     category: Optional[str] = None,
     q: Optional[str] = None,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_kind_donation", "view"))
 ):
     statement = select(KindDonation).order_by(KindDonation.date.desc(), KindDonation.created_at.desc())
 
@@ -197,16 +247,37 @@ def list_kind_donations(
     return session.exec(statement).all()
 
 @router.get("/kind-donation/{donation_id}", response_model=KindDonation)
-def get_kind_donation(donation_id: str, session: Session = Depends(get_session)):
+def get_kind_donation(
+    donation_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_kind_donation", "view"))
+):
     donation = session.get(KindDonation, donation_id)
     if not donation:
         raise HTTPException(status_code=404, detail="Kind donation not found")
     return donation
 
+@router.delete("/kind-donation/{donation_id}")
+def delete_kind_donation(
+    donation_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_kind_donation", "delete"))
+):
+    donation = session.get(KindDonation, donation_id)
+    if not donation:
+        raise HTTPException(status_code=404, detail="Kind donation not found")
+    session.delete(donation)
+    session.commit()
+    return {"message": "Kind donation deleted successfully", "id": donation_id}
+
 
 # ----------------- 4. LOAN ENDPOINTS -----------------
 @router.post("/loans", response_model=Loan, status_code=201)
-def create_loan(payload: LoanCreate, session: Session = Depends(get_session)):
+def create_loan(
+    payload: LoanCreate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_loan", "create"))
+):
     l_date = payload.date_taken or date.today()
     recv_acct = payload.received_in_account or "Cash"
 
@@ -237,17 +308,18 @@ def create_loan(payload: LoanCreate, session: Session = Depends(get_session)):
     return loan
 
 @router.get("/loans")
-def list_loans(session: Session = Depends(get_session)):
+def list_loans(
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_loan", "view"))
+):
     loans = session.exec(select(Loan).order_by(Loan.date_taken.desc())).all()
     result = []
 
     for l in loans:
-        # Sum payments for this loan
         pmt_stmt = select(func.sum(LoanPayment.amount_paid)).where(LoanPayment.loan_id == l.id)
         total_paid = session.exec(pmt_stmt).first() or 0.0
         remaining = max(0.0, l.amount_taken - total_paid)
 
-        # Sync status if fully paid
         if remaining <= 0 and l.status != "Fully Paid":
             l.status = "Fully Paid"
             session.add(l)
@@ -262,7 +334,11 @@ def list_loans(session: Session = Depends(get_session)):
     return result
 
 @router.get("/loans/{loan_id}")
-def get_loan_detail(loan_id: str, session: Session = Depends(get_session)):
+def get_loan_detail(
+    loan_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_loan", "view"))
+):
     loan = session.get(Loan, loan_id)
     if not loan:
         raise HTTPException(status_code=404, detail="Loan record not found")
@@ -282,7 +358,12 @@ def get_loan_detail(loan_id: str, session: Session = Depends(get_session)):
     return l_dict
 
 @router.post("/loans/{loan_id}/payments", response_model=LoanPayment, status_code=201)
-def add_loan_payment(loan_id: str, payload: LoanPaymentCreate, session: Session = Depends(get_session)):
+def add_loan_payment(
+    loan_id: str,
+    payload: LoanPaymentCreate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_loan", "create"))
+):
     loan = session.get(Loan, loan_id)
     if not loan:
         raise HTTPException(status_code=404, detail="Loan record not found")
@@ -310,7 +391,6 @@ def add_loan_payment(loan_id: str, payload: LoanPaymentCreate, session: Session 
     session.commit()
     session.refresh(payment)
 
-    # Check remaining status
     pmt_stmt = select(func.sum(LoanPayment.amount_paid)).where(LoanPayment.loan_id == loan.id)
     total_paid = session.exec(pmt_stmt).first() or 0.0
     if total_paid >= loan.amount_taken:
@@ -321,25 +401,51 @@ def add_loan_payment(loan_id: str, payload: LoanPaymentCreate, session: Session 
     return payment
 
 @router.get("/loans/{loan_id}/payments", response_model=List[LoanPayment])
-def get_loan_payments(loan_id: str, session: Session = Depends(get_session)):
+def get_loan_payments(
+    loan_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_loan", "view"))
+):
     return session.exec(
         select(LoanPayment).where(LoanPayment.loan_id == loan_id).order_by(LoanPayment.date_paid.desc())
     ).all()
 
+@router.delete("/loans/{loan_id}")
+def delete_loan(
+    loan_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_loan", "delete"))
+):
+    loan = session.get(Loan, loan_id)
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan record not found")
+    
+    # Delete attached payments
+    payments = session.exec(select(LoanPayment).where(LoanPayment.loan_id == loan_id)).all()
+    for p in payments:
+        session.delete(p)
+
+    session.delete(loan)
+    session.commit()
+    return {"message": "Loan record deleted successfully", "id": loan_id}
+
 
 # ----------------- 5. ACCOUNT BALANCES & DASHBOARD -----------------
 @router.get("/accounts/balances")
-def get_account_balances_endpoint(session: Session = Depends(get_session)):
+def get_account_balances_endpoint(
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_dashboard", "view"))
+):
     return calculate_account_balances(session)
 
 @router.get("/dashboard/summary")
-def get_dashboard_summary(session: Session = Depends(get_session)):
-    # 1. Balances
+def get_dashboard_summary(
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_dashboard", "view"))
+):
     balances_data = calculate_account_balances(session)
-
     today = date.today()
     
-    # 2. Today's totals
     today_rec_stmt = select(func.sum(ReceivedEntry.amount)).where(ReceivedEntry.date == today)
     today_rec = session.exec(today_rec_stmt).first() or 0.0
 
@@ -348,7 +454,6 @@ def get_dashboard_summary(session: Session = Depends(get_session)):
 
     today_net = today_rec - today_deb
 
-    # 3. Total active loan remaining
     loans = session.exec(select(Loan)).all()
     active_loan_remaining = 0.0
     loan_overviews = []
@@ -367,7 +472,6 @@ def get_dashboard_summary(session: Session = Depends(get_session)):
             "status": l.status
         })
 
-    # 4. Income vs Expense over last 30 days
     thirty_days_ago = today - timedelta(days=29)
     date_map = {}
     curr = thirty_days_ago
@@ -395,13 +499,11 @@ def get_dashboard_summary(session: Session = Depends(get_session)):
         for v in date_map.values()
     ]
 
-    # 5. Account Balance Pie Chart
     chart_account_pie = [
         {"name": acct, "value": max(0.0, amt)}
         for acct, amt in balances_data["accounts"].items()
     ]
 
-    # 6. Received Split (Income vs Donation)
     inc_stmt = select(func.sum(ReceivedEntry.amount)).where(ReceivedEntry.entry_type == "Income")
     total_income = session.exec(inc_stmt).first() or 0.0
 
@@ -413,7 +515,6 @@ def get_dashboard_summary(session: Session = Depends(get_session)):
         {"type": "Donation", "amount": round(total_donation, 2)}
     ]
 
-    # 7. Debit by Purpose / Top Spending
     deb_by_purpose_stmt = select(DebitEntry.purpose, func.sum(DebitEntry.amount)).group_by(DebitEntry.purpose)
     deb_categories = session.exec(deb_by_purpose_stmt).all()
     chart_debit_categories = [
@@ -421,7 +522,6 @@ def get_dashboard_summary(session: Session = Depends(get_session)):
         for purpose, total in sorted(deb_categories, key=lambda x: x[1] or 0.0, reverse=True)[:6]
     ]
 
-    # 8. Kind Donations by Category
     kind_stmt = select(KindDonation.category, func.count(KindDonation.id), func.sum(KindDonation.estimated_value)).group_by(KindDonation.category)
     kind_cat_list = session.exec(kind_stmt).all()
     chart_kind_donations = [
@@ -429,7 +529,6 @@ def get_dashboard_summary(session: Session = Depends(get_session)):
         for cat, count, val in kind_cat_list
     ]
 
-    # 9. Recent 10 Transactions Feed
     recent_transactions = []
     
     recent_recs = session.exec(select(ReceivedEntry).order_by(ReceivedEntry.created_at.desc()).limit(10)).all()
@@ -471,7 +570,6 @@ def get_dashboard_summary(session: Session = Depends(get_session)):
             "color": "blue"
         })
 
-    # Sort combined feed by created_at desc
     recent_transactions.sort(key=lambda x: x["created_at"], reverse=True)
     recent_transactions = recent_transactions[:10]
 
@@ -497,9 +595,9 @@ def get_dashboard_summary(session: Session = Depends(get_session)):
 def export_finance_excel(
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_dashboard", "view"))
 ):
-    # 1. Query Received Entries in range
     rec_stmt = select(ReceivedEntry).order_by(ReceivedEntry.date.desc())
     if date_from:
         rec_stmt = rec_stmt.where(ReceivedEntry.date >= date_from)
@@ -507,7 +605,6 @@ def export_finance_excel(
         rec_stmt = rec_stmt.where(ReceivedEntry.date <= date_to)
     received_entries = session.exec(rec_stmt).all()
 
-    # 2. Query Debit Entries in range
     deb_stmt = select(DebitEntry).order_by(DebitEntry.date.desc())
     if date_from:
         deb_stmt = deb_stmt.where(DebitEntry.date >= date_from)
@@ -515,7 +612,6 @@ def export_finance_excel(
         deb_stmt = deb_stmt.where(DebitEntry.date <= date_to)
     debit_entries = session.exec(deb_stmt).all()
 
-    # 3. Query Kind Donations in range
     knd_stmt = select(KindDonation).order_by(KindDonation.date.desc())
     if date_from:
         knd_stmt = knd_stmt.where(KindDonation.date >= date_from)
@@ -523,7 +619,6 @@ def export_finance_excel(
         knd_stmt = knd_stmt.where(KindDonation.date <= date_to)
     kind_donations = session.exec(knd_stmt).all()
 
-    # 4. Query Loans with repayment totals
     loans_all = session.exec(select(Loan).order_by(Loan.date_taken.desc())).all()
     loans_data = []
     for l in loans_all:
@@ -546,10 +641,8 @@ def export_finance_excel(
             "notes": l.notes
         })
 
-    # 5. Calculate account balances
     balances = calculate_account_balances(session)
 
-    # 6. Generate Excel workbook
     excel_bytes = generate_finance_excel(
         date_from=date_from,
         date_to=date_to,

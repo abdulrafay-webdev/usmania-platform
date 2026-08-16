@@ -4,11 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlmodel import Session, select, or_
 
 from app.db import get_session
-from app.models import Teacher, TeacherCreate, TeacherUpdate, BulkExportRequest
+from app.models import Teacher, TeacherCreate, TeacherUpdate, BulkExportRequest, User
 from app.services.hijri_util import convert_gregorian_to_hijri
 from app.services.pdf_generator import generate_record_pdf
 from app.services.id_card_generator import generate_id_card_pdf
 from app.services.excel_generator import generate_records_excel
+from app.dependencies import require_permission
 
 router = APIRouter(prefix="/api/teachers", tags=["Teachers"])
 
@@ -19,7 +20,11 @@ def generate_next_teacher_roll_no(session: Session) -> str:
     return f"JUT-TCH-{count:04d}"
 
 @router.post("", response_model=Teacher, status_code=201)
-def create_teacher(payload: TeacherCreate, session: Session = Depends(get_session)):
+def create_teacher(
+    payload: TeacherCreate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("teachers", "create"))
+):
     admission_dt = payload.admission_date or date.today()
     islamic_dt = convert_gregorian_to_hijri(admission_dt)
     roll_no = generate_next_teacher_roll_no(session)
@@ -41,7 +46,8 @@ def create_teacher(payload: TeacherCreate, session: Session = Depends(get_sessio
 def list_teachers(
     skip: int = 0,
     limit: int = 100,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("teachers", "view"))
 ):
     statement = select(Teacher).offset(skip).limit(limit).order_by(Teacher.admission_date.desc())
     return session.exec(statement).all()
@@ -49,7 +55,8 @@ def list_teachers(
 @router.get("/search", response_model=List[Teacher])
 def search_teachers(
     q: str = Query("", min_length=0),
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("teachers", "view"))
 ):
     if not q or not q.strip():
         return session.exec(select(Teacher).order_by(Teacher.admission_date.desc())).all()
@@ -67,14 +74,23 @@ def search_teachers(
     return session.exec(statement).all()
 
 @router.get("/{teacher_id}", response_model=Teacher)
-def get_teacher(teacher_id: str, session: Session = Depends(get_session)):
+def get_teacher(
+    teacher_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("teachers", "view"))
+):
     teacher = session.get(Teacher, teacher_id)
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
     return teacher
 
 @router.put("/{teacher_id}", response_model=Teacher)
-def update_teacher(teacher_id: str, payload: TeacherUpdate, session: Session = Depends(get_session)):
+def update_teacher(
+    teacher_id: str,
+    payload: TeacherUpdate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("teachers", "edit"))
+):
     teacher = session.get(Teacher, teacher_id)
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher record not found")
@@ -95,7 +111,11 @@ def update_teacher(teacher_id: str, payload: TeacherUpdate, session: Session = D
     return teacher
 
 @router.delete("/{teacher_id}")
-def delete_teacher(teacher_id: str, session: Session = Depends(get_session)):
+def delete_teacher(
+    teacher_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("teachers", "delete"))
+):
     teacher = session.get(Teacher, teacher_id)
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher record not found")
@@ -105,7 +125,11 @@ def delete_teacher(teacher_id: str, session: Session = Depends(get_session)):
     return {"message": "Teacher record deleted successfully", "id": teacher_id}
 
 @router.get("/{teacher_id}/pdf")
-def get_teacher_pdf(teacher_id: str, session: Session = Depends(get_session)):
+def get_teacher_pdf(
+    teacher_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("teachers", "view"))
+):
     teacher = session.get(Teacher, teacher_id)
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
@@ -120,7 +144,11 @@ def get_teacher_pdf(teacher_id: str, session: Session = Depends(get_session)):
     )
 
 @router.get("/{teacher_id}/id-card")
-def get_teacher_id_card(teacher_id: str, session: Session = Depends(get_session)):
+def get_teacher_id_card(
+    teacher_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("teachers", "view"))
+):
     teacher = session.get(Teacher, teacher_id)
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
@@ -135,7 +163,11 @@ def get_teacher_id_card(teacher_id: str, session: Session = Depends(get_session)
     )
 
 @router.post("/export")
-def export_teachers_excel(body: BulkExportRequest, session: Session = Depends(get_session)):
+def export_teachers_excel(
+    body: BulkExportRequest,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("teachers", "view"))
+):
     if not body.ids:
         raise HTTPException(status_code=400, detail="No teacher IDs provided for export")
 

@@ -1,9 +1,10 @@
 import uuid
 from datetime import date as date_type, datetime as datetime_type
-from typing import Optional, List
+from typing import Optional, List, Dict
 from enum import Enum
 from sqlmodel import SQLModel, Field, Column, String, Text, Float
 
+# ----------------- ENUMS -----------------
 class GenderEnum(str, Enum):
     MALE = "Male"
     FEMALE = "Female"
@@ -33,6 +34,138 @@ class LoanStatusEnum(str, Enum):
 class SyedStatusEnum(str, Enum):
     SYED = "Syed"
     NON_SYED = "Non-Syed"
+
+class ModuleEnum(str, Enum):
+    STUDENTS = "students"
+    TEACHERS = "teachers"
+    FINANCE_DASHBOARD = "finance_dashboard"
+    FINANCE_RECEIVED = "finance_received"
+    FINANCE_DEBIT = "finance_debit"
+    FINANCE_KIND_DONATION = "finance_kind_donation"
+    FINANCE_LOAN = "finance_loan"
+    SETTINGS_USERS = "settings_users"
+
+ALL_MODULES = [
+    ModuleEnum.STUDENTS.value,
+    ModuleEnum.TEACHERS.value,
+    ModuleEnum.FINANCE_DASHBOARD.value,
+    ModuleEnum.FINANCE_RECEIVED.value,
+    ModuleEnum.FINANCE_DEBIT.value,
+    ModuleEnum.FINANCE_KIND_DONATION.value,
+    ModuleEnum.FINANCE_LOAN.value,
+    ModuleEnum.SETTINGS_USERS.value
+]
+
+
+# ----------------- RBAC DATA MODELS -----------------
+
+class Role(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    name: str = Field(index=True, unique=True)
+    description: Optional[str] = Field(default="")
+    is_system_role: bool = Field(default=False, description="Protect default system roles from deletion")
+    created_at: datetime_type = Field(default_factory=datetime_type.now)
+
+
+class Permission(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    role_id: str = Field(index=True, foreign_key="role.id")
+    module: str = Field(index=True, description="students, teachers, finance_dashboard, etc.")
+    can_view: bool = Field(default=False)
+    can_create: bool = Field(default=False)
+    can_edit: bool = Field(default=False)
+    can_delete: bool = Field(default=False)
+
+
+class User(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    name: str = Field(index=True)
+    email: str = Field(index=True, unique=True)
+    password_hash: str
+    role_id: str = Field(index=True, foreign_key="role.id")
+    is_active: bool = Field(default=True)
+    token_version: int = Field(default=1, description="Incremented to invalidate previous JWT sessions")
+    created_at: datetime_type = Field(default_factory=datetime_type.now)
+    last_login_at: Optional[datetime_type] = Field(default=None)
+
+
+class PasswordResetToken(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    user_id: str = Field(index=True, foreign_key="user.id")
+    token_hash: str = Field(index=True)
+    expires_at: datetime_type
+    used: bool = Field(default=False)
+    created_at: datetime_type = Field(default_factory=datetime_type.now)
+
+
+# ----------------- RBAC DTO SCHEMAS -----------------
+
+class PermissionDTO(SQLModel):
+    module: str
+    can_view: bool = False
+    can_create: bool = False
+    can_edit: bool = False
+    can_delete: bool = False
+
+class RoleCreate(SQLModel):
+    name: str
+    description: Optional[str] = ""
+    permissions: Optional[List[PermissionDTO]] = []
+
+class RoleUpdate(SQLModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+class RolePermissionsUpdate(SQLModel):
+    permissions: List[PermissionDTO]
+
+class RoleResponse(SQLModel):
+    id: str
+    name: str
+    description: Optional[str] = ""
+    is_system_role: bool = False
+    created_at: datetime_type
+    permissions: List[PermissionDTO] = []
+
+class UserCreate(SQLModel):
+    name: str
+    email: str
+    password: str
+    role_id: str
+    is_active: bool = True
+
+class UserUpdate(SQLModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    role_id: Optional[str] = None
+    is_active: Optional[bool] = None
+    password: Optional[str] = None
+
+class UserResponse(SQLModel):
+    id: str
+    name: str
+    email: str
+    role_id: str
+    role_name: Optional[str] = ""
+    is_active: bool
+    created_at: datetime_type
+    last_login_at: Optional[datetime_type] = None
+
+class LoginRequest(SQLModel):
+    email: str
+    password: str
+
+class ForgotPasswordRequest(SQLModel):
+    email: str
+
+class ResetPasswordRequest(SQLModel):
+    token: str
+    new_password: str
+
+class AuthMeResponse(SQLModel):
+    user: UserResponse
+    role: RoleResponse
+    permissions: Dict[str, Dict[str, bool]]
 
 
 # ----------------- STUDENT SQLMODEL -----------------

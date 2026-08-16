@@ -1,6 +1,69 @@
 const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const API_BASE_URL = rawBaseUrl.replace(/\/+$/, '');
 
+// ----------------- RBAC & AUTH INTERFACES -----------------
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role_id: string;
+  role_name?: string;
+  is_active: boolean;
+  created_at: string;
+  last_login_at?: string | null;
+}
+
+export interface PermissionDTO {
+  module: string;
+  can_view: boolean;
+  can_create: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+  is_system_role: boolean;
+  created_at: string;
+  permissions: PermissionDTO[];
+}
+
+export interface AuthMeResponse {
+  user: User;
+  role: Role;
+  permissions: Record<string, { can_view: boolean; can_create: boolean; can_edit: boolean; can_delete: boolean }>;
+}
+
+export interface UserCreatePayload {
+  name: string;
+  email: string;
+  password: string;
+  role_id: string;
+  is_active?: boolean;
+}
+
+export interface UserUpdatePayload {
+  name?: string;
+  email?: string;
+  role_id?: string;
+  is_active?: boolean;
+  password?: string;
+}
+
+export interface RoleCreatePayload {
+  name: string;
+  description?: string;
+  permissions?: PermissionDTO[];
+}
+
+export interface RoleUpdatePayload {
+  name?: string;
+  description?: string;
+}
+
+// ----------------- STUDENT & TEACHER INTERFACES -----------------
 export interface Student {
   id: string;
   roll_no: string;
@@ -60,7 +123,7 @@ export interface Teacher {
   admission_date: string;
   islamic_date: string;
   subject: string;
-  father_guardian_name?: string;
+  father_guardian_name: string;
 
   // Optional Documents / Images
   doc_contract?: string;
@@ -168,17 +231,16 @@ export interface DashboardSummaryResponse {
   }>;
   recent_transactions: Array<{
     id: string;
-    type: 'Received' | 'Debit' | 'Kind' | string;
+    type: 'Received' | 'Debit' | 'Kind';
     title: string;
     sub: string;
     amount: number;
     date: string;
     created_at: string;
-    color: string;
+    color: 'green' | 'red' | 'blue';
   }>;
 }
 
-// ----------------- DONOR INTERFACES -----------------
 export interface DonorListItem {
   id: string;
   name: string;
@@ -221,11 +283,24 @@ export interface DonorDetailResponse {
 export type StudentCreatePayload = Omit<Student, 'id' | 'roll_no' | 'islamic_date'>;
 export type TeacherCreatePayload = Omit<Teacher, 'id' | 'roll_no' | 'islamic_date'>;
 
-// Auth API
+// Helper to include Bearer token if stored locally
+function getAuthHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = { ...extraHeaders };
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('jwt_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+}
+
+// ----------------- AUTHENTICATION API -----------------
 export async function loginUser(email: string, password: string) {
   const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ email, password })
   });
 
@@ -234,48 +309,209 @@ export async function loginUser(email: string, password: string) {
     throw new Error(err.detail || 'Invalid email or password');
   }
 
+  const data = await res.json();
+  if (typeof window !== 'undefined' && data.access_token) {
+    localStorage.setItem('jwt_token', data.access_token);
+  }
+  return data;
+}
+
+export async function logoutUser() {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('jwt_token');
+  }
+  try {
+    await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+  } catch (e) {
+    // Ignore logout error
+  }
+}
+
+export async function getMe(): Promise<AuthMeResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
+  if (!res.ok) {
+    throw new Error('Not authenticated');
+  }
   return res.json();
 }
 
-// Fetch All / Search Students
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+  return res.json();
+}
+
+export async function resetPassword(token: string, new_password: string): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, new_password })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to reset password');
+  }
+  return res.json();
+}
+
+
+// ----------------- USERS MANAGEMENT API -----------------
+export async function getUsers(): Promise<User[]> {
+  const res = await fetch(`${API_BASE_URL}/api/users`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
+  if (!res.ok) throw new Error('Failed to fetch users list');
+  return res.json();
+}
+
+export async function createUser(payload: UserCreatePayload): Promise<User> {
+  const res = await fetch(`${API_BASE_URL}/api/users`, {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to create user');
+  }
+  return res.json();
+}
+
+export async function updateUser(id: string, payload: UserUpdatePayload): Promise<User> {
+  const res = await fetch(`${API_BASE_URL}/api/users/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to update user');
+  }
+  return res.json();
+}
+
+export async function triggerUserPasswordReset(id: string): Promise<{ message: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/users/${id}/reset-password`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to trigger password reset');
+  }
+  return res.json();
+}
+
+
+// ----------------- ROLES MANAGEMENT API -----------------
+export async function getRoles(): Promise<Role[]> {
+  const res = await fetch(`${API_BASE_URL}/api/roles`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
+  if (!res.ok) throw new Error('Failed to fetch roles');
+  return res.json();
+}
+
+export async function createRole(payload: RoleCreatePayload): Promise<Role> {
+  const res = await fetch(`${API_BASE_URL}/api/roles`, {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to create role');
+  }
+  return res.json();
+}
+
+export async function updateRole(id: string, payload: RoleUpdatePayload): Promise<Role> {
+  const res = await fetch(`${API_BASE_URL}/api/roles/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to update role');
+  }
+  return res.json();
+}
+
+export async function updateRolePermissions(id: string, permissions: PermissionDTO[]): Promise<Role> {
+  const res = await fetch(`${API_BASE_URL}/api/roles/${id}/permissions`, {
+    method: 'PUT',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify({ permissions })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to update role permissions');
+  }
+  return res.json();
+}
+
+export async function deleteRole(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/roles/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to delete role');
+  }
+}
+
+
+// ----------------- STUDENTS API -----------------
 export async function getStudents(query: string = ''): Promise<Student[]> {
   const endpoint = query.trim() 
     ? `${API_BASE_URL}/api/students/search?q=${encodeURIComponent(query)}`
     : `${API_BASE_URL}/api/students`;
-  const res = await fetch(endpoint, { cache: 'no-store' });
+  const res = await fetch(endpoint, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
   if (!res.ok) throw new Error('Failed to fetch students');
   return res.json();
 }
 
-// Fetch All / Search Teachers
-export async function getTeachers(query: string = ''): Promise<Teacher[]> {
-  const endpoint = query.trim()
-    ? `${API_BASE_URL}/api/teachers/search?q=${encodeURIComponent(query)}`
-    : `${API_BASE_URL}/api/teachers`;
-  const res = await fetch(endpoint, { cache: 'no-store' });
-  if (!res.ok) throw new Error('Failed to fetch teachers');
-  return res.json();
-}
-
-// Get Single Student
 export async function getStudentById(id: string): Promise<Student> {
-  const res = await fetch(`${API_BASE_URL}/api/students/${id}`);
+  const res = await fetch(`${API_BASE_URL}/api/students/${id}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
   if (!res.ok) throw new Error('Failed to fetch student profile');
   return res.json();
 }
 
-// Get Single Teacher
-export async function getTeacherById(id: string): Promise<Teacher> {
-  const res = await fetch(`${API_BASE_URL}/api/teachers/${id}`);
-  if (!res.ok) throw new Error('Failed to fetch teacher profile');
-  return res.json();
-}
-
-// Create Student
 export async function createStudent(payload: Partial<Student>): Promise<Student> {
   const res = await fetch(`${API_BASE_URL}/api/students`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
   if (!res.ok) {
@@ -285,11 +521,11 @@ export async function createStudent(payload: Partial<Student>): Promise<Student>
   return res.json();
 }
 
-// Update Student
 export async function updateStudent(id: string, payload: Partial<Student>): Promise<Student> {
   const res = await fetch(`${API_BASE_URL}/api/students/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
   if (!res.ok) {
@@ -299,10 +535,11 @@ export async function updateStudent(id: string, payload: Partial<Student>): Prom
   return res.json();
 }
 
-// Delete Student
 export async function deleteStudent(id: string): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/api/students/${id}`, {
-    method: 'DELETE'
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -310,11 +547,35 @@ export async function deleteStudent(id: string): Promise<void> {
   }
 }
 
-// Create Teacher
+
+// ----------------- TEACHERS API -----------------
+export async function getTeachers(query: string = ''): Promise<Teacher[]> {
+  const endpoint = query.trim()
+    ? `${API_BASE_URL}/api/teachers/search?q=${encodeURIComponent(query)}`
+    : `${API_BASE_URL}/api/teachers`;
+  const res = await fetch(endpoint, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
+  if (!res.ok) throw new Error('Failed to fetch teachers');
+  return res.json();
+}
+
+export async function getTeacherById(id: string): Promise<Teacher> {
+  const res = await fetch(`${API_BASE_URL}/api/teachers/${id}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) throw new Error('Failed to fetch teacher profile');
+  return res.json();
+}
+
 export async function createTeacher(payload: Partial<Teacher>): Promise<Teacher> {
   const res = await fetch(`${API_BASE_URL}/api/teachers`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
   if (!res.ok) {
@@ -324,11 +585,11 @@ export async function createTeacher(payload: Partial<Teacher>): Promise<Teacher>
   return res.json();
 }
 
-// Update Teacher
 export async function updateTeacher(id: string, payload: Partial<Teacher>): Promise<Teacher> {
   const res = await fetch(`${API_BASE_URL}/api/teachers/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
   if (!res.ok) {
@@ -338,10 +599,11 @@ export async function updateTeacher(id: string, payload: Partial<Teacher>): Prom
   return res.json();
 }
 
-// Delete Teacher
 export async function deleteTeacher(id: string): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/api/teachers/${id}`, {
-    method: 'DELETE'
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -349,63 +611,28 @@ export async function deleteTeacher(id: string): Promise<void> {
   }
 }
 
-// Upload Picture / Document
+
+// ----------------- IMAGE UPLOAD -----------------
 export async function uploadPicture(file: File): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
   const res = await fetch(`${API_BASE_URL}/api/upload-image`, {
     method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
     body: formData
   });
-  if (!res.ok) throw new Error('Image upload failed');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Image upload failed');
+  }
   const data = await res.json();
   return data.url;
 }
 
-// Full PDF Profile Download URLs
-export function getStudentPdfDownloadUrl(id: string): string {
-  return `${API_BASE_URL}/api/students/${id}/pdf`;
-}
 
-export function getTeacherPdfDownloadUrl(id: string): string {
-  return `${API_BASE_URL}/api/teachers/${id}/pdf`;
-}
-
-// Printable ID Card Download URLs
-export function getStudentIdCardDownloadUrl(id: string): string {
-  return `${API_BASE_URL}/api/students/${id}/id-card`;
-}
-
-export function getTeacherIdCardDownloadUrl(id: string): string {
-  return `${API_BASE_URL}/api/teachers/${id}/id-card`;
-}
-
-// Bulk Excel Export Trigger
-export async function exportSelectedExcel(type: 'students' | 'teachers', ids: string[]) {
-  const endpoint = `${API_BASE_URL}/api/${type}/export`;
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ids })
-  });
-
-  if (!res.ok) throw new Error('Excel export failed');
-
-  const blob = await res.blob();
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Jamia_Usmania_${type.toUpperCase()}_Export.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
-}
-
-// ----------------- FINANCE API FUNCTIONS -----------------
-
-// 1. Received Entries
-export async function getFinanceReceived(filters?: {
+// ----------------- FINANCE API -----------------
+export async function getReceivedEntries(filters?: {
   date_from?: string;
   date_to?: string;
   entry_type?: string;
@@ -419,15 +646,20 @@ export async function getFinanceReceived(filters?: {
   if (filters?.account) params.append('account', filters.account);
   if (filters?.q) params.append('q', filters.q);
 
-  const res = await fetch(`${API_BASE_URL}/api/finance/received?${params.toString()}`, { cache: 'no-store' });
+  const res = await fetch(`${API_BASE_URL}/api/finance/received?${params.toString()}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
   if (!res.ok) throw new Error('Failed to fetch received entries');
   return res.json();
 }
 
-export async function createFinanceReceived(payload: Partial<ReceivedEntry>): Promise<ReceivedEntry> {
+export async function createReceivedEntry(payload: Omit<ReceivedEntry, 'id' | 'created_at'>): Promise<ReceivedEntry> {
   const res = await fetch(`${API_BASE_URL}/api/finance/received`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
   if (!res.ok) {
@@ -437,8 +669,16 @@ export async function createFinanceReceived(payload: Partial<ReceivedEntry>): Pr
   return res.json();
 }
 
-// 2. Debit Entries
-export async function getFinanceDebit(filters?: {
+export async function deleteReceivedEntry(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/received/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) throw new Error('Failed to delete received entry');
+}
+
+export async function getDebitEntries(filters?: {
   date_from?: string;
   date_to?: string;
   account?: string;
@@ -450,15 +690,20 @@ export async function getFinanceDebit(filters?: {
   if (filters?.account) params.append('account', filters.account);
   if (filters?.q) params.append('q', filters.q);
 
-  const res = await fetch(`${API_BASE_URL}/api/finance/debit?${params.toString()}`, { cache: 'no-store' });
+  const res = await fetch(`${API_BASE_URL}/api/finance/debit?${params.toString()}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
   if (!res.ok) throw new Error('Failed to fetch debit entries');
   return res.json();
 }
 
-export async function createFinanceDebit(payload: Partial<DebitEntry>): Promise<DebitEntry> {
+export async function createDebitEntry(payload: Omit<DebitEntry, 'id' | 'created_at'>): Promise<DebitEntry> {
   const res = await fetch(`${API_BASE_URL}/api/finance/debit`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
   if (!res.ok) {
@@ -468,8 +713,16 @@ export async function createFinanceDebit(payload: Partial<DebitEntry>): Promise<
   return res.json();
 }
 
-// 3. Kind Donations
-export async function getFinanceKindDonations(filters?: {
+export async function deleteDebitEntry(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/debit/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) throw new Error('Failed to delete debit entry');
+}
+
+export async function getKindDonations(filters?: {
   category?: string;
   q?: string;
 }): Promise<KindDonation[]> {
@@ -477,177 +730,283 @@ export async function getFinanceKindDonations(filters?: {
   if (filters?.category) params.append('category', filters.category);
   if (filters?.q) params.append('q', filters.q);
 
-  const res = await fetch(`${API_BASE_URL}/api/finance/kind-donation?${params.toString()}`, { cache: 'no-store' });
+  const res = await fetch(`${API_BASE_URL}/api/finance/kind-donation?${params.toString()}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
   if (!res.ok) throw new Error('Failed to fetch in-kind donations');
   return res.json();
 }
 
-export async function createFinanceKindDonation(payload: Partial<KindDonation>): Promise<KindDonation> {
+export async function createKindDonation(payload: Omit<KindDonation, 'id' | 'created_at'>): Promise<KindDonation> {
   const res = await fetch(`${API_BASE_URL}/api/finance/kind-donation`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to create in-kind donation');
+    throw new Error(err.detail || 'Failed to create kind donation');
   }
   return res.json();
 }
 
-// 4. Loans & Payments
-export async function getFinanceLoans(): Promise<Loan[]> {
-  const res = await fetch(`${API_BASE_URL}/api/finance/loans`, { cache: 'no-store' });
+export async function deleteKindDonation(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/kind-donation/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) throw new Error('Failed to delete kind donation');
+}
+
+export async function getLoans(): Promise<Loan[]> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/loans`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
   if (!res.ok) throw new Error('Failed to fetch loans');
   return res.json();
 }
 
-export async function createFinanceLoan(payload: Partial<Loan>): Promise<Loan> {
+export async function getLoanDetail(id: string): Promise<Loan> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/loans/${id}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
+  if (!res.ok) throw new Error('Failed to fetch loan details');
+  return res.json();
+}
+
+export async function createLoan(payload: Omit<Loan, 'id' | 'status' | 'created_at' | 'total_paid' | 'remaining_balance' | 'payments'>): Promise<Loan> {
   const res = await fetch(`${API_BASE_URL}/api/finance/loans`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to create loan record');
+    throw new Error(err.detail || 'Failed to create loan');
   }
   return res.json();
 }
 
-export async function getFinanceLoanDetail(loanId: string): Promise<Loan> {
-  const res = await fetch(`${API_BASE_URL}/api/finance/loans/${loanId}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error('Failed to fetch loan detail');
-  return res.json();
-}
-
-export async function addFinanceLoanPayment(loanId: string, payload: Partial<LoanPayment>): Promise<LoanPayment> {
+export async function addLoanPayment(loanId: string, payload: { amount_paid: number; date_paid?: string; paid_from_account: string; notes?: string }): Promise<LoanPayment> {
   const res = await fetch(`${API_BASE_URL}/api/finance/loans/${loanId}/payments`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to record loan payment');
+    throw new Error(err.detail || 'Failed to record loan repayment');
   }
   return res.json();
 }
 
-// 5. Account Balances & Dashboard
-export async function getFinanceAccountBalances(): Promise<AccountBalancesResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/finance/accounts/balances`, { cache: 'no-store' });
+export async function deleteLoan(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/loans/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) throw new Error('Failed to delete loan');
+}
+
+export async function getAccountBalances(): Promise<AccountBalancesResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/accounts/balances`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
   if (!res.ok) throw new Error('Failed to fetch account balances');
   return res.json();
 }
 
-export async function getFinanceDashboardSummary(): Promise<DashboardSummaryResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/finance/dashboard/summary`, { cache: 'no-store' });
-  if (!res.ok) throw new Error('Failed to fetch finance dashboard summary');
+export async function getDashboardSummary(): Promise<DashboardSummaryResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/dashboard/summary`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
+  if (!res.ok) throw new Error('Failed to fetch dashboard summary');
   return res.json();
 }
 
-// 6. Comprehensive Finance Excel Export
-export async function exportFinanceExcel(date_from?: string, date_to?: string) {
-  const params = new URLSearchParams();
-  if (date_from) params.append('date_from', date_from);
-  if (date_to) params.append('date_to', date_to);
 
-  const endpoint = `${API_BASE_URL}/api/finance/export/excel?${params.toString()}`;
-  const res = await fetch(endpoint);
-  if (!res.ok) throw new Error('Failed to generate Finance Excel report');
-
-  const blob = await res.blob();
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  
-  let periodLabel = 'All_Time';
-  if (date_from && date_to) periodLabel = `${date_from}_to_${date_to}`;
-  else if (date_from) periodLabel = `from_${date_from}`;
-  else if (date_to) periodLabel = `up_to_${date_to}`;
-
-  a.download = `Jamia_Usmania_Finance_Report_${periodLabel}.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
-}
-
-// ----------------- DONORS & COMMENTS API -----------------
+// ----------------- DONORS DIRECTORY API -----------------
 export async function getDonors(query?: string): Promise<DonorListItem[]> {
-  const endpoint = query?.trim()
-    ? `${API_BASE_URL}/api/donors?q=${encodeURIComponent(query)}`
-    : `${API_BASE_URL}/api/donors`;
-  const res = await fetch(endpoint, { cache: 'no-store' });
+  const params = query ? `?q=${encodeURIComponent(query)}` : '';
+  const res = await fetch(`${API_BASE_URL}/api/donors${params}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
   if (!res.ok) throw new Error('Failed to fetch donors list');
   return res.json();
 }
 
-export async function getDonorDetail(donorId: string): Promise<DonorDetailResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/donors/${donorId}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error('Failed to fetch donor details');
-  return res.json();
-}
-
-export async function createDonor(payload: Partial<DonorListItem>): Promise<DonorListItem> {
-  const res = await fetch(`${API_BASE_URL}/api/donors`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+export async function getDonorDetail(id: string): Promise<DonorDetailResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/donors/${id}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to register donor');
-  }
+  if (!res.ok) throw new Error('Failed to fetch donor profile');
   return res.json();
-}
-
-export async function updateDonor(donorId: string, payload: Partial<DonorListItem>): Promise<DonorListItem> {
-  const res = await fetch(`${API_BASE_URL}/api/donors/${donorId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to update donor');
-  }
-  return res.json();
-}
-
-export async function deleteDonor(donorId: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/donors/${donorId}`, {
-    method: 'DELETE'
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to delete donor');
-  }
 }
 
 export async function addDonorComment(
   donorId: string,
-  payload: { author_name: string; content: string }
+  payloadOrAuthor: { author_name: string; content: string } | string,
+  maybeContent?: string
 ): Promise<DonorComment> {
+  const author = typeof payloadOrAuthor === 'object' ? payloadOrAuthor.author_name : payloadOrAuthor;
+  const content = typeof payloadOrAuthor === 'object' ? payloadOrAuthor.content : maybeContent || '';
+
   const res = await fetch(`${API_BASE_URL}/api/donors/${donorId}/comments`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify({ author_name: author, content })
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to post comment');
+    throw new Error(err.detail || 'Failed to add comment');
   }
   return res.json();
 }
 
 export async function deleteDonorComment(donorId: string, commentId: string): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/api/donors/${donorId}/comments/${commentId}`, {
-    method: 'DELETE'
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || 'Failed to delete comment');
-  }
+  if (!res.ok) throw new Error('Failed to delete comment');
 }
+
+
+// ----------------- PDF & EXCEL EXPORTS -----------------
+export function getStudentPdfDownloadUrl(id: string): string {
+  return `${API_BASE_URL}/api/students/${id}/pdf`;
+}
+
+export function getTeacherPdfDownloadUrl(id: string): string {
+  return `${API_BASE_URL}/api/teachers/${id}/pdf`;
+}
+
+export function getStudentIdCardDownloadUrl(id: string): string {
+  return `${API_BASE_URL}/api/students/${id}/id-card`;
+}
+
+export function getTeacherIdCardDownloadUrl(id: string): string {
+  return `${API_BASE_URL}/api/teachers/${id}/id-card`;
+}
+
+export function getFinanceExcelDownloadUrl(dateFrom?: string, dateTo?: string): string {
+  const params = new URLSearchParams();
+  if (dateFrom) params.append('date_from', dateFrom);
+  if (dateTo) params.append('date_to', dateTo);
+  return `${API_BASE_URL}/api/finance/export/excel?${params.toString()}`;
+}
+
+export async function exportBulkStudentsExcel(ids: string[]): Promise<Blob> {
+  const res = await fetch(`${API_BASE_URL}/api/students/export`, {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify({ ids })
+  });
+  if (!res.ok) throw new Error('Failed to export students excel');
+  return res.blob();
+}
+
+export async function exportBulkTeachersExcel(ids: string[]): Promise<Blob> {
+  const res = await fetch(`${API_BASE_URL}/api/teachers/export`, {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify({ ids })
+  });
+  if (!res.ok) throw new Error('Failed to export teachers excel');
+  return res.blob();
+}
+
+// Backward-compatibility aliases for Finance components
+export const getFinanceReceived = getReceivedEntries;
+export const createFinanceReceived = createReceivedEntry;
+export const deleteFinanceReceived = deleteReceivedEntry;
+
+export const getFinanceDebit = getDebitEntries;
+export const createFinanceDebit = createDebitEntry;
+export const deleteFinanceDebit = deleteDebitEntry;
+
+export const getFinanceKindDonations = getKindDonations;
+export const createFinanceKindDonation = createKindDonation;
+export const deleteFinanceKindDonation = deleteKindDonation;
+
+export const getFinanceLoans = getLoans;
+export const getFinanceLoanDetail = getLoanDetail;
+export const createFinanceLoan = createLoan;
+export const addFinanceLoanPayment = addLoanPayment;
+export const deleteFinanceLoan = deleteLoan;
+
+export const getFinanceAccountBalances = getAccountBalances;
+export const getFinanceDashboardSummary = getDashboardSummary;
+
+export async function exportSelectedExcel(type: 'students' | 'teachers', ids: string[]) {
+  const blob = type === 'students' ? await exportBulkStudentsExcel(ids) : await exportBulkTeachersExcel(ids);
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Jamia_Usmania_${type === 'students' ? 'Students' : 'Teachers'}_Export.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+export async function createDonor(payload: any): Promise<DonorListItem> {
+  const res = await fetch(`${API_BASE_URL}/api/donors`, {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('Failed to create donor');
+  return res.json();
+}
+
+export async function updateDonor(id: string, payload: any): Promise<DonorListItem> {
+  const res = await fetch(`${API_BASE_URL}/api/donors/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('Failed to update donor');
+  return res.json();
+}
+
+export async function deleteDonor(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/donors/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) throw new Error('Failed to delete donor');
+}
+
+export async function exportFinanceExcel(dateFrom?: string, dateTo?: string) {
+  const url = getFinanceExcelDownloadUrl(dateFrom, dateTo);
+  window.open(url, '_blank');
+}
+
+

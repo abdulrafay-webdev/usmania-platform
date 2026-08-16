@@ -4,11 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlmodel import Session, select, or_
 
 from app.db import get_session
-from app.models import Student, StudentCreate, StudentUpdate, Teacher, BulkExportRequest
+from app.models import Student, StudentCreate, StudentUpdate, Teacher, BulkExportRequest, User
 from app.services.hijri_util import convert_gregorian_to_hijri
 from app.services.pdf_generator import generate_record_pdf
 from app.services.id_card_generator import generate_id_card_pdf
 from app.services.excel_generator import generate_records_excel
+from app.dependencies import require_permission
 
 router = APIRouter(prefix="/api/students", tags=["Students"])
 
@@ -19,7 +20,11 @@ def generate_next_roll_no(session: Session) -> str:
     return f"JUT-STU-{count:04d}"
 
 @router.post("", response_model=Student, status_code=201)
-def create_student(payload: StudentCreate, session: Session = Depends(get_session)):
+def create_student(
+    payload: StudentCreate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("students", "create"))
+):
     admission_dt = payload.admission_date or date.today()
     islamic_dt = convert_gregorian_to_hijri(admission_dt)
     roll_no = generate_next_roll_no(session)
@@ -49,7 +54,8 @@ def create_student(payload: StudentCreate, session: Session = Depends(get_sessio
 def list_students(
     skip: int = 0,
     limit: int = 100,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("students", "view"))
 ):
     statement = select(Student).offset(skip).limit(limit).order_by(Student.admission_date.desc())
     return session.exec(statement).all()
@@ -57,7 +63,8 @@ def list_students(
 @router.get("/search", response_model=List[Student])
 def search_students(
     q: str = Query("", min_length=0),
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("students", "view"))
 ):
     if not q or not q.strip():
         return session.exec(select(Student).order_by(Student.admission_date.desc())).all()
@@ -76,14 +83,23 @@ def search_students(
     return session.exec(statement).all()
 
 @router.get("/{student_id}", response_model=Student)
-def get_student(student_id: str, session: Session = Depends(get_session)):
+def get_student(
+    student_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("students", "view"))
+):
     student = session.get(Student, student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     return student
 
 @router.put("/{student_id}", response_model=Student)
-def update_student(student_id: str, payload: StudentUpdate, session: Session = Depends(get_session)):
+def update_student(
+    student_id: str,
+    payload: StudentUpdate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("students", "edit"))
+):
     student = session.get(Student, student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student record not found")
@@ -117,7 +133,11 @@ def update_student(student_id: str, payload: StudentUpdate, session: Session = D
     return student
 
 @router.delete("/{student_id}")
-def delete_student(student_id: str, session: Session = Depends(get_session)):
+def delete_student(
+    student_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("students", "delete"))
+):
     student = session.get(Student, student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student record not found")
@@ -127,7 +147,11 @@ def delete_student(student_id: str, session: Session = Depends(get_session)):
     return {"message": "Student record deleted successfully", "id": student_id}
 
 @router.get("/{student_id}/pdf")
-def get_student_pdf(student_id: str, session: Session = Depends(get_session)):
+def get_student_pdf(
+    student_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("students", "view"))
+):
     student = session.get(Student, student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
@@ -142,7 +166,11 @@ def get_student_pdf(student_id: str, session: Session = Depends(get_session)):
     )
 
 @router.get("/{student_id}/id-card")
-def get_student_id_card(student_id: str, session: Session = Depends(get_session)):
+def get_student_id_card(
+    student_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("students", "view"))
+):
     student = session.get(Student, student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
@@ -157,7 +185,11 @@ def get_student_id_card(student_id: str, session: Session = Depends(get_session)
     )
 
 @router.post("/export")
-def export_students_excel(body: BulkExportRequest, session: Session = Depends(get_session)):
+def export_students_excel(
+    body: BulkExportRequest,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("students", "view"))
+):
     if not body.ids:
         raise HTTPException(status_code=400, detail="No student IDs provided for export")
 

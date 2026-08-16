@@ -9,8 +9,9 @@ import AdmissionModal from '@/components/AdmissionModal';
 import RecordDetailModal from '@/components/RecordDetailModal';
 import IdCardModal from '@/components/IdCardModal';
 import BulkActionBar from '@/components/BulkActionBar';
-import LoginScreen from '@/components/LoginScreen';
+import LoginPage from '@/components/LoginPage';
 import DonorDirectory from '@/components/DonorDirectory';
+import UserSettings from '@/components/UserSettings';
 
 // Finance Components
 import FinanceDashboard from '@/components/finance/FinanceDashboard';
@@ -19,6 +20,7 @@ import FinanceDebit from '@/components/finance/FinanceDebit';
 import FinanceKindDonation from '@/components/finance/FinanceKindDonation';
 import FinanceLoan from '@/components/finance/FinanceLoan';
 
+import { useAuth } from '@/context/AuthContext';
 import {
   Student,
   Teacher,
@@ -28,13 +30,19 @@ import {
   deleteTeacher,
   exportSelectedExcel
 } from '@/lib/api';
-import { GraduationCap, Users, UserPlus, RefreshCw } from 'lucide-react';
+import { GraduationCap, Users, UserPlus, RefreshCw, Plus, CheckCircle2 } from 'lucide-react';
 
 export default function DashboardPage() {
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [authChecking, setAuthChecking] = useState<boolean>(true);
-  const [userEmail, setUserEmail] = useState<string>('usmaniatrust@gmail.com');
+  const {
+    currentUser,
+    currentRole,
+    loading: authLoading,
+    isAuthenticated,
+    logout,
+    hasPermission,
+    canAccessModule,
+    isCreateOnly
+  } = useAuth();
 
   const [activeTab, setActiveTab] = useState<MainTabType>('students');
   const [searchQuery, setSearchQuery] = useState('');
@@ -43,7 +51,7 @@ export default function DashboardPage() {
   // Data states
   const [students, setStudents] = useState<Student[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Selection states
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
@@ -64,26 +72,33 @@ export default function DashboardPage() {
 
   const [isExporting, setIsExporting] = useState(false);
 
-  // Check login session on mount
+  // Calculate default valid tab when user logs in or role changes
   useEffect(() => {
-    const token = localStorage.getItem('jut_token');
-    const savedUser = localStorage.getItem('jut_user');
-    if (token) {
-      setIsAuthenticated(true);
-      if (savedUser) {
-        try {
-          const parsed = JSON.parse(savedUser);
-          if (parsed.email) setUserEmail(parsed.email);
-        } catch (e) {}
-      }
+    if (!isAuthenticated) return;
+
+    const allowedTabs: MainTabType[] = [];
+    if (canAccessModule('students')) allowedTabs.push('students');
+    if (canAccessModule('teachers')) allowedTabs.push('teachers');
+    if (hasPermission('finance_dashboard', 'view')) allowedTabs.push('finance-dashboard');
+    if (canAccessModule('finance_received')) allowedTabs.push('finance-received');
+    if (canAccessModule('finance_debit')) allowedTabs.push('finance-debit');
+    if (canAccessModule('finance_kind_donation')) allowedTabs.push('finance-kind-donation');
+    if (canAccessModule('finance_loan')) allowedTabs.push('finance-loan');
+    if (hasPermission('finance_received', 'view')) allowedTabs.push('donors');
+    if (canAccessModule('settings_users')) allowedTabs.push('settings-users');
+
+    if (allowedTabs.length > 0 && !allowedTabs.includes(activeTab)) {
+      setActiveTab(allowedTabs[0]);
     }
-    setAuthChecking(false);
-  }, []);
+  }, [isAuthenticated, currentRole]);
 
   // Fetch Data Function for Students / Teachers
   const loadData = useCallback(async () => {
     if (!isAuthenticated) return;
-    if (activeTab.startsWith('finance') || activeTab === 'donors') return; // Handled internally
+    if (activeTab.startsWith('finance') || activeTab === 'donors' || activeTab === 'settings-users') return;
+
+    if (activeTab === 'students' && !hasPermission('students', 'view')) return;
+    if (activeTab === 'teachers' && !hasPermission('teachers', 'view')) return;
 
     setLoading(true);
     try {
@@ -95,31 +110,17 @@ export default function DashboardPage() {
         setTeachers(data);
       }
     } catch (err) {
-      console.error('Failed to load data', err);
+      console.error('Failed to load records', err);
     } finally {
       setLoading(false);
     }
-  }, [activeTab, searchQuery, isAuthenticated]);
+  }, [activeTab, searchQuery, isAuthenticated, hasPermission]);
 
   useEffect(() => {
     if (isAuthenticated) {
       loadData();
     }
   }, [loadData, isAuthenticated]);
-
-  // Auth Handlers
-  const handleLoginSuccess = (user: any) => {
-    setIsAuthenticated(true);
-    if (user?.email) setUserEmail(user.email);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('jut_token');
-    localStorage.removeItem('jut_user');
-    setIsAuthenticated(false);
-    setSelectedStudentIds([]);
-    setSelectedTeacherIds([]);
-  };
 
   // Handlers for Student Selection
   const handleToggleSelectStudent = (id: string) => {
@@ -161,6 +162,9 @@ export default function DashboardPage() {
   // Open Edit Modal
   const handleEditRecord = (record: Student | Teacher) => {
     const isStud = 'student_class' in record;
+    if (isStud && !hasPermission('students', 'edit')) return;
+    if (!isStud && !hasPermission('teachers', 'edit')) return;
+
     setAdmissionRole(isStud ? 'student' : 'teacher');
     setEditRecord(record);
     setAdmissionModalOpen(true);
@@ -169,6 +173,9 @@ export default function DashboardPage() {
   // Handle Delete Record
   const handleDeleteRecord = async (record: Student | Teacher) => {
     const isStud = 'student_class' in record;
+    if (isStud && !hasPermission('students', 'delete')) return;
+    if (!isStud && !hasPermission('teachers', 'delete')) return;
+
     const confirmText = `Are you sure you want to delete ${record.name} (${record.roll_no})? This action cannot be undone.`;
 
     if (window.confirm(confirmText)) {
@@ -217,21 +224,24 @@ export default function DashboardPage() {
     }
   };
 
-  if (authChecking) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-[#145A32] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-[#FDF6E3] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   // Render Login Page if not authenticated
   if (!isAuthenticated) {
-    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+    return <LoginPage />;
   }
 
   const currentSelectedCount =
     activeTab === 'students' ? selectedStudentIds.length : activeTab === 'teachers' ? selectedTeacherIds.length : 0;
+
+  const canCreateCurrent =
+    activeTab === 'students' ? hasPermission('students', 'create') : hasPermission('teachers', 'create');
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -243,10 +253,9 @@ export default function DashboardPage() {
           setSearchQuery('');
         }}
         onOpenAdmissionModal={handleOpenAdmissionModal}
-        onLogout={handleLogout}
+        onLogout={logout}
         studentCount={students.length}
         teacherCount={teachers.length}
-        userEmail={userEmail}
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
       />
@@ -256,16 +265,15 @@ export default function DashboardPage() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         activeTab={activeTab}
-        userEmail={userEmail}
-        onLogout={handleLogout}
+        onLogout={logout}
         onMenuClick={() => setMobileMenuOpen(true)}
       />
 
-      {/* Main Content Area - Responsive margin & padding */}
+      {/* Main Content Area */}
       <main className="ml-0 md:ml-64 pt-16 p-3 sm:p-5 md:p-8 min-h-[calc(100vh-4rem)] transition-all">
         <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-          {/* Header Bar for Students / Teachers */}
-          {(activeTab === 'students' || activeTab === 'teachers') && (
+          {/* Header Bar for Students / Teachers (when view permission exists) */}
+          {(activeTab === 'students' || activeTab === 'teachers') && hasPermission(activeTab, 'view') && (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-xl border border-gray-200 shadow-2xs">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-[#FDF6E3] text-[#145A32] flex items-center justify-center border border-[#145A32]/20 shadow-2xs shrink-0">
@@ -290,51 +298,91 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                 <button
                   onClick={loadData}
-                  className="p-2 sm:p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5"
+                  className="p-2 sm:p-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5 cursor-pointer"
                   title="Refresh Table"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                   <span className="hidden sm:inline">Refresh</span>
                 </button>
 
-                <button
-                  onClick={() => handleOpenAdmissionModal(activeTab === 'students' ? 'student' : 'teacher')}
-                  className="px-3.5 sm:px-4 py-2 bg-[#145A32] hover:bg-[#0E4124] text-[#FDF6E3] text-xs font-semibold rounded-lg shadow-sm transition-all duration-150 flex items-center gap-1.5 sm:gap-2 flex-1 sm:flex-initial justify-center"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>+ New {activeTab === 'students' ? 'Student' : 'Teacher'}</span>
-                </button>
+                {canCreateCurrent && (
+                  <button
+                    onClick={() => handleOpenAdmissionModal(activeTab === 'students' ? 'student' : 'teacher')}
+                    className="px-3.5 sm:px-4 py-2 bg-[#145A32] hover:bg-[#0E4124] text-[#FDF6E3] text-xs font-semibold rounded-lg shadow-sm transition-all duration-150 flex items-center gap-1.5 sm:gap-2 flex-1 sm:flex-initial justify-center cursor-pointer"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>+ New {activeTab === 'students' ? 'Student' : 'Teacher'}</span>
+                  </button>
+                )}
               </div>
             </div>
           )}
 
           {/* Render Active View */}
           {activeTab === 'students' && (
-            <StudentTable
-              students={students}
-              selectedIds={selectedStudentIds}
-              onToggleSelect={handleToggleSelectStudent}
-              onToggleSelectAll={handleToggleSelectAllStudents}
-              onViewProfile={handleViewDetail}
-              onViewIdCard={handleViewIdCard}
-              onEditStudent={handleEditRecord}
-              onDeleteStudent={handleDeleteRecord}
-              isLoading={loading}
-            />
+            isCreateOnly('students') ? (
+              <div className="max-w-xl mx-auto bg-white p-8 rounded-2xl border border-gray-200 shadow-sm text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-[#FDF6E3] text-[#145A32] mx-auto flex items-center justify-center">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <h2 className="text-lg font-bold font-serif text-gray-900">Student Admission Entry</h2>
+                <p className="text-xs text-gray-500">
+                  You have permission to register new students. Click below to open the admission form.
+                </p>
+                <button
+                  onClick={() => handleOpenAdmissionModal('student')}
+                  className="px-6 py-2.5 bg-[#145A32] text-white text-xs font-bold rounded-xl hover:bg-[#0E4124] shadow-sm flex items-center gap-2 mx-auto cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Open Student Admission Form</span>
+                </button>
+              </div>
+            ) : (
+              <StudentTable
+                students={students}
+                selectedIds={selectedStudentIds}
+                onToggleSelect={handleToggleSelectStudent}
+                onToggleSelectAll={handleToggleSelectAllStudents}
+                onViewProfile={handleViewDetail}
+                onViewIdCard={handleViewIdCard}
+                onEditStudent={handleEditRecord}
+                onDeleteStudent={handleDeleteRecord}
+                isLoading={loading}
+              />
+            )
           )}
 
           {activeTab === 'teachers' && (
-            <TeacherTable
-              teachers={teachers}
-              selectedIds={selectedTeacherIds}
-              onToggleSelect={handleToggleSelectTeacher}
-              onToggleSelectAll={handleToggleSelectAllTeachers}
-              onViewProfile={handleViewDetail}
-              onViewIdCard={handleViewIdCard}
-              onEditTeacher={handleEditRecord}
-              onDeleteTeacher={handleDeleteRecord}
-              isLoading={loading}
-            />
+            isCreateOnly('teachers') ? (
+              <div className="max-w-xl mx-auto bg-white p-8 rounded-2xl border border-gray-200 shadow-sm text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-[#FDF6E3] text-[#145A32] mx-auto flex items-center justify-center">
+                  <Users className="w-6 h-6" />
+                </div>
+                <h2 className="text-lg font-bold font-serif text-gray-900">Teacher Registration Entry</h2>
+                <p className="text-xs text-gray-500">
+                  You have permission to register new faculty members. Click below to open the registration form.
+                </p>
+                <button
+                  onClick={() => handleOpenAdmissionModal('teacher')}
+                  className="px-6 py-2.5 bg-[#145A32] text-white text-xs font-bold rounded-xl hover:bg-[#0E4124] shadow-sm flex items-center gap-2 mx-auto cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Open Teacher Registration Form</span>
+                </button>
+              </div>
+            ) : (
+              <TeacherTable
+                teachers={teachers}
+                selectedIds={selectedTeacherIds}
+                onToggleSelect={handleToggleSelectTeacher}
+                onToggleSelectAll={handleToggleSelectAllTeachers}
+                onViewProfile={handleViewDetail}
+                onViewIdCard={handleViewIdCard}
+                onEditTeacher={handleEditRecord}
+                onDeleteTeacher={handleDeleteRecord}
+                isLoading={loading}
+              />
+            )
           )}
 
           {activeTab === 'donors' && <DonorDirectory />}
@@ -344,11 +392,13 @@ export default function DashboardPage() {
           {activeTab === 'finance-debit' && <FinanceDebit />}
           {activeTab === 'finance-kind-donation' && <FinanceKindDonation />}
           {activeTab === 'finance-loan' && <FinanceLoan />}
+
+          {activeTab === 'settings-users' && <UserSettings />}
         </div>
       </main>
 
       {/* Floating Bulk Action Bar (for Students & Teachers) */}
-      {(activeTab === 'students' || activeTab === 'teachers') && (
+      {(activeTab === 'students' || activeTab === 'teachers') && hasPermission(activeTab, 'view') && (
         <BulkActionBar
           selectedCount={currentSelectedCount}
           onExportExcel={handleExportSelected}
