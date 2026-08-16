@@ -20,7 +20,11 @@ def get_current_user(
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.split(" ")[1].strip()
     
-    # 2. Check HTTP-only cookie if header not provided
+    # 2. Check query parameter (essential for direct browser downloads like PDF & Excel)
+    if not token:
+        token = request.query_params.get("token")
+
+    # 3. Check HTTP-only cookie if header/param not provided
     if not token:
         token = request.cookies.get("jwt_token")
     

@@ -1043,27 +1043,83 @@ export async function deleteDonorComment(donorId: string, commentId: string): Pr
 
 
 // ----------------- PDF & EXCEL EXPORTS -----------------
+function getAuthTokenParam(): string {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('jwt_token');
+    if (token) return `token=${encodeURIComponent(token)}`;
+  }
+  return '';
+}
+
 export function getStudentPdfDownloadUrl(id: string): string {
-  return `${API_BASE_URL}/api/students/${id}/pdf`;
+  const tokenParam = getAuthTokenParam();
+  return `${API_BASE_URL}/api/students/${id}/pdf${tokenParam ? `?${tokenParam}` : ''}`;
 }
 
 export function getTeacherPdfDownloadUrl(id: string): string {
-  return `${API_BASE_URL}/api/teachers/${id}/pdf`;
+  const tokenParam = getAuthTokenParam();
+  return `${API_BASE_URL}/api/teachers/${id}/pdf${tokenParam ? `?${tokenParam}` : ''}`;
 }
 
 export function getStudentIdCardDownloadUrl(id: string): string {
-  return `${API_BASE_URL}/api/students/${id}/id-card`;
+  const tokenParam = getAuthTokenParam();
+  return `${API_BASE_URL}/api/students/${id}/id-card${tokenParam ? `?${tokenParam}` : ''}`;
 }
 
 export function getTeacherIdCardDownloadUrl(id: string): string {
-  return `${API_BASE_URL}/api/teachers/${id}/id-card`;
+  const tokenParam = getAuthTokenParam();
+  return `${API_BASE_URL}/api/teachers/${id}/id-card${tokenParam ? `?${tokenParam}` : ''}`;
 }
 
 export function getFinanceExcelDownloadUrl(dateFrom?: string, dateTo?: string): string {
   const params = new URLSearchParams();
   if (dateFrom) params.append('date_from', dateFrom);
   if (dateTo) params.append('date_to', dateTo);
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('jwt_token');
+    if (token) params.append('token', token);
+  }
   return `${API_BASE_URL}/api/finance/export/excel?${params.toString()}`;
+}
+
+export async function downloadTeacherPdf(id: string, teacherName: string = 'Teacher'): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/teachers/${id}/pdf`, {
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to download Teacher PDF');
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Jamia_Usmania_Teacher_${teacherName.replace(/\s+/g, '_')}_Profile.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+export async function downloadStudentPdf(id: string, studentName: string = 'Student'): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/students/${id}/pdf`, {
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to download Student PDF');
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Jamia_Usmania_Student_${studentName.replace(/\s+/g, '_')}_Profile.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
 }
 
 export async function exportBulkStudentsExcel(ids: string[]): Promise<Blob> {
