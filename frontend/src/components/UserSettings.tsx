@@ -859,9 +859,10 @@ export default function UserSettings() {
                   Assigned Role (اختیارات کا عہدہ) <span className="text-red-500">*</span>
                 </label>
                 <select
+                  disabled={editingUser?.email === 'usmaniatrust@gmail.com'}
                   value={userFormData.role_id}
                   onChange={(e) => setUserFormData({ ...userFormData, role_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32] disabled:bg-gray-100 disabled:text-gray-500"
                 >
                   {rolesList.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -869,6 +870,11 @@ export default function UserSettings() {
                     </option>
                   ))}
                 </select>
+                {editingUser?.email === 'usmaniatrust@gmail.com' && (
+                  <p className="text-[11px] text-amber-700 mt-1 font-medium">
+                    Primary Super Administrator account cannot be reassigned or demoted.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -890,9 +896,10 @@ export default function UserSettings() {
                 <input
                   type="checkbox"
                   id="user_active"
+                  disabled={editingUser?.email === 'usmaniatrust@gmail.com'}
                   checked={userFormData.is_active}
                   onChange={(e) => setUserFormData({ ...userFormData, is_active: e.target.checked })}
-                  className="rounded border-gray-300 text-[#145A32] focus:ring-[#145A32]"
+                  className="rounded border-gray-300 text-[#145A32] focus:ring-[#145A32] disabled:opacity-50"
                 />
                 <label htmlFor="user_active" className="font-bold text-gray-700 cursor-pointer">
                   Account Active (لاگ ان کی اجازت ہے)

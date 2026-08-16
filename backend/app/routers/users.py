@@ -90,6 +90,14 @@ def update_user(
     if payload.name:
         user.name = payload.name.strip()
 
+    # Protect primary Super Admin from demotion or deactivation
+    if user.email == "usmaniatrust@gmail.com":
+        super_admin_role = session.exec(select(Role).where(Role.name == "Super Admin")).first()
+        if payload.role_id and super_admin_role and payload.role_id != super_admin_role.id:
+            raise HTTPException(status_code=400, detail="The primary Super Admin account cannot be demoted.")
+        if payload.is_active is False:
+            raise HTTPException(status_code=400, detail="The primary Super Admin account cannot be deactivated.")
+
     if payload.role_id:
         role = session.get(Role, payload.role_id)
         if not role:
