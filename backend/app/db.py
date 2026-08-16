@@ -47,7 +47,7 @@ def seed_default_roles_and_admin(session: Session):
         },
         {
             "name": "Finance Manager",
-            "description": "Full access to all Finance sections (Dashboard, Received, Debit, Kind Donation, Loan).",
+            "description": "Full access to all Finance sections (Dashboard, Received, Debit, Kind Donation, Loan, Liabilities).",
             "is_system_role": True,
             "permissions": {
                 ModuleEnum.FINANCE_DASHBOARD.value: {"can_view": True, "can_create": False, "can_edit": False, "can_delete": False},
@@ -55,6 +55,7 @@ def seed_default_roles_and_admin(session: Session):
                 ModuleEnum.FINANCE_DEBIT.value: {"can_view": True, "can_create": True, "can_edit": True, "can_delete": True},
                 ModuleEnum.FINANCE_KIND_DONATION.value: {"can_view": True, "can_create": True, "can_edit": True, "can_delete": True},
                 ModuleEnum.FINANCE_LOAN.value: {"can_view": True, "can_create": True, "can_edit": True, "can_delete": True},
+                ModuleEnum.FINANCE_LIABILITY.value: {"can_view": True, "can_create": True, "can_edit": True, "can_delete": True},
             }
         },
         {
@@ -69,12 +70,13 @@ def seed_default_roles_and_admin(session: Session):
         },
         {
             "name": "Data Entry Operator",
-            "description": "Create-only access for Receiving, Debit, and Kind Donation forms (no view or history access).",
+            "description": "Create-only access for Receiving, Debit, Kind Donation, and Liabilities forms (no view or history access).",
             "is_system_role": True,
             "permissions": {
                 ModuleEnum.FINANCE_RECEIVED.value: {"can_view": False, "can_create": True, "can_edit": False, "can_delete": False},
                 ModuleEnum.FINANCE_DEBIT.value: {"can_view": False, "can_create": True, "can_edit": False, "can_delete": False},
                 ModuleEnum.FINANCE_KIND_DONATION.value: {"can_view": False, "can_create": True, "can_edit": False, "can_delete": False},
+                ModuleEnum.FINANCE_LIABILITY.value: {"can_view": False, "can_create": True, "can_edit": False, "can_delete": False},
             }
         }
     ]

@@ -10,6 +10,8 @@ from app.models import (
     KindDonation, KindDonationCreate,
     Loan, LoanCreate,
     LoanPayment, LoanPaymentCreate,
+    Liability, LiabilityCreate, LiabilityUpdate,
+    LiabilityPayment, LiabilityPaymentCreate,
     User
 )
 from app.services.excel_generator import generate_finance_excel
@@ -430,7 +432,220 @@ def delete_loan(
     return {"message": "Loan record deleted successfully", "id": loan_id}
 
 
-# ----------------- 5. ACCOUNT BALANCES & DASHBOARD -----------------
+# ----------------- 5. LIABILITIES (واجبات / ادائیگیاں / بلز) -----------------
+@router.post("/liabilities", response_model=Liability, status_code=201)
+def create_liability(
+    payload: LiabilityCreate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_liability", "create"))
+):
+    incurred_date = payload.date_incurred or date.today()
+    liability = Liability(
+        title=payload.title,
+        category=payload.category or "Utility Bill",
+        amount_total=payload.amount_total,
+        date_incurred=incurred_date,
+        due_date=payload.due_date,
+        status="Pending",
+        notes=payload.notes or ""
+    )
+    session.add(liability)
+    session.commit()
+    session.refresh(liability)
+    return liability
+
+@router.get("/liabilities")
+def get_liabilities(
+    status: Optional[str] = None,
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_liability", "view"))
+):
+    statement = select(Liability).order_by(Liability.date_incurred.desc())
+    if status and status != "All":
+        statement = statement.where(Liability.status == status)
+    if category and category != "All":
+        statement = statement.where(Liability.category == category)
+    if search:
+        term = f"%{search.strip()}%"
+        statement = statement.where(or_(Liability.title.ilike(term), Liability.notes.ilike(term)))
+    
+    liabilities = session.exec(statement).all()
+    results = []
+    
+    for lb in liabilities:
+        pmt_stmt = select(func.sum(LiabilityPayment.amount_paid)).where(LiabilityPayment.liability_id == lb.id)
+        total_paid = session.exec(pmt_stmt).first() or 0.0
+        remaining = max(0.0, lb.amount_total - total_paid)
+        
+        # Sync status
+        new_status = lb.status
+        if total_paid >= lb.amount_total and lb.amount_total > 0:
+            new_status = "Fully Paid"
+        elif total_paid > 0:
+            new_status = "Partially Paid"
+        else:
+            new_status = "Pending"
+            
+        if new_status != lb.status:
+            lb.status = new_status
+            session.add(lb)
+            session.commit()
+            
+        results.append({
+            "id": lb.id,
+            "title": lb.title,
+            "category": lb.category,
+            "amount_total": lb.amount_total,
+            "total_paid": round(total_paid, 2),
+            "remaining_balance": round(remaining, 2),
+            "date_incurred": str(lb.date_incurred),
+            "due_date": str(lb.due_date) if lb.due_date else None,
+            "status": lb.status,
+            "notes": lb.notes,
+            "created_at": lb.created_at.isoformat()
+        })
+    return results
+
+@router.get("/liabilities/{liability_id}")
+def get_liability_detail(
+    liability_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_liability", "view"))
+):
+    lb = session.get(Liability, liability_id)
+    if not lb:
+        raise HTTPException(status_code=404, detail="Liability record not found")
+        
+    payments = session.exec(
+        select(LiabilityPayment).where(LiabilityPayment.liability_id == liability_id).order_by(LiabilityPayment.date_paid.desc())
+    ).all()
+    
+    total_paid = sum(p.amount_paid for p in payments)
+    remaining = max(0.0, lb.amount_total - total_paid)
+    
+    return {
+        "liability": lb,
+        "total_paid": round(total_paid, 2),
+        "remaining_balance": round(remaining, 2),
+        "payments": payments
+    }
+
+@router.put("/liabilities/{liability_id}", response_model=Liability)
+def update_liability(
+    liability_id: str,
+    payload: LiabilityUpdate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_liability", "edit"))
+):
+    lb = session.get(Liability, liability_id)
+    if not lb:
+        raise HTTPException(status_code=404, detail="Liability record not found")
+        
+    if payload.title is not None:
+        lb.title = payload.title
+    if payload.category is not None:
+        lb.category = payload.category
+    if payload.amount_total is not None:
+        lb.amount_total = payload.amount_total
+    if payload.date_incurred is not None:
+        lb.date_incurred = payload.date_incurred
+    if payload.due_date is not None:
+        lb.due_date = payload.due_date
+    if payload.notes is not None:
+        lb.notes = payload.notes
+        
+    # Re-check status based on amount_total change
+    pmt_stmt = select(func.sum(LiabilityPayment.amount_paid)).where(LiabilityPayment.liability_id == lb.id)
+    total_paid = session.exec(pmt_stmt).first() or 0.0
+    if total_paid >= lb.amount_total and lb.amount_total > 0:
+        lb.status = "Fully Paid"
+    elif total_paid > 0:
+        lb.status = "Partially Paid"
+    else:
+        lb.status = "Pending"
+        
+    session.add(lb)
+    session.commit()
+    session.refresh(lb)
+    return lb
+
+@router.post("/liabilities/{liability_id}/payments", response_model=LiabilityPayment, status_code=201)
+def add_liability_payment(
+    liability_id: str,
+    payload: LiabilityPaymentCreate,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_liability", "create"))
+):
+    lb = session.get(Liability, liability_id)
+    if not lb:
+        raise HTTPException(status_code=404, detail="Liability record not found")
+        
+    pay_date = payload.date_paid or date.today()
+    payment = LiabilityPayment(
+        liability_id=lb.id,
+        amount_paid=payload.amount_paid,
+        date_paid=pay_date,
+        paid_from_account=payload.paid_from_account,
+        notes=payload.notes or ""
+    )
+    session.add(payment)
+    
+    # Auto-create corresponding DebitEntry so account balance reduces transparently
+    debit = DebitEntry(
+        date=pay_date,
+        account=payload.paid_from_account,
+        amount=payload.amount_paid,
+        paid_to=lb.title,
+        purpose=f"Liability payment: {lb.title} ({lb.category})"
+    )
+    session.add(debit)
+    session.commit()
+    session.refresh(payment)
+    
+    # Update liability status
+    pmt_stmt = select(func.sum(LiabilityPayment.amount_paid)).where(LiabilityPayment.liability_id == lb.id)
+    total_paid = session.exec(pmt_stmt).first() or 0.0
+    if total_paid >= lb.amount_total:
+        lb.status = "Fully Paid"
+    elif total_paid > 0:
+        lb.status = "Partially Paid"
+    session.add(lb)
+    session.commit()
+    
+    return payment
+
+@router.get("/liabilities/{liability_id}/payments", response_model=List[LiabilityPayment])
+def get_liability_payments(
+    liability_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_liability", "view"))
+):
+    return session.exec(
+        select(LiabilityPayment).where(LiabilityPayment.liability_id == liability_id).order_by(LiabilityPayment.date_paid.desc())
+    ).all()
+
+@router.delete("/liabilities/{liability_id}")
+def delete_liability(
+    liability_id: str,
+    session: Session = Depends(get_session),
+    _: User = Depends(require_permission("finance_liability", "delete"))
+):
+    lb = session.get(Liability, liability_id)
+    if not lb:
+        raise HTTPException(status_code=404, detail="Liability record not found")
+        
+    payments = session.exec(select(LiabilityPayment).where(LiabilityPayment.liability_id == liability_id)).all()
+    for p in payments:
+        session.delete(p)
+        
+    session.delete(lb)
+    session.commit()
+    return {"message": "Liability record deleted successfully", "id": liability_id}
+
+
+# ----------------- 6. ACCOUNT BALANCES & DASHBOARD -----------------
 @router.get("/accounts/balances")
 def get_account_balances_endpoint(
     session: Session = Depends(get_session),
@@ -470,6 +685,27 @@ def get_dashboard_summary(
             "total_paid": round(total_paid, 2),
             "remaining": round(rem, 2),
             "status": l.status
+        })
+
+    # Liabilities Overview
+    liabilities = session.exec(select(Liability)).all()
+    active_liabilities_remaining = 0.0
+    liabilities_overviews = []
+    for lb in liabilities:
+        pmt_stmt = select(func.sum(LiabilityPayment.amount_paid)).where(LiabilityPayment.liability_id == lb.id)
+        total_paid = session.exec(pmt_stmt).first() or 0.0
+        rem = max(0.0, lb.amount_total - total_paid)
+        if rem > 0:
+            active_liabilities_remaining += rem
+        liabilities_overviews.append({
+            "id": lb.id,
+            "title": lb.title,
+            "category": lb.category,
+            "amount_total": lb.amount_total,
+            "total_paid": round(total_paid, 2),
+            "remaining": round(rem, 2),
+            "due_date": str(lb.due_date) if lb.due_date else None,
+            "status": lb.status
         })
 
     thirty_days_ago = today - timedelta(days=29)
@@ -580,17 +816,19 @@ def get_dashboard_summary(
         "today_debit": round(today_deb, 2),
         "today_net": round(today_net, 2),
         "active_loan_remaining": round(active_loan_remaining, 2),
+        "active_liabilities_remaining": round(active_liabilities_remaining, 2),
         "chart_income_vs_expense": chart_income_vs_expense,
         "chart_account_pie": chart_account_pie,
         "chart_received_split": chart_received_split,
         "chart_debit_categories": chart_debit_categories,
         "chart_kind_donations": chart_kind_donations,
         "loan_overviews": loan_overviews,
+        "liabilities_overviews": liabilities_overviews,
         "recent_transactions": recent_transactions
     }
 
 
-# ----------------- 6. COMPREHENSIVE FINANCE EXCEL EXPORT -----------------
+# ----------------- 7. COMPREHENSIVE FINANCE EXCEL EXPORT -----------------
 @router.get("/export/excel")
 def export_finance_excel(
     date_from: Optional[date] = None,
@@ -641,6 +879,28 @@ def export_finance_excel(
             "notes": l.notes
         })
 
+    liabilities_all = session.exec(select(Liability).order_by(Liability.date_incurred.desc())).all()
+    liabilities_data = []
+    for lb in liabilities_all:
+        pmt_stmt = select(func.sum(LiabilityPayment.amount_paid)).where(LiabilityPayment.liability_id == lb.id)
+        if date_from:
+            pmt_stmt = pmt_stmt.where(LiabilityPayment.date_paid >= date_from)
+        if date_to:
+            pmt_stmt = pmt_stmt.where(LiabilityPayment.date_paid <= date_to)
+        total_paid = session.exec(pmt_stmt).first() or 0.0
+        rem = max(0.0, lb.amount_total - total_paid)
+        liabilities_data.append({
+            "title": lb.title,
+            "category": lb.category,
+            "date_incurred": lb.date_incurred,
+            "due_date": lb.due_date,
+            "amount_total": lb.amount_total,
+            "total_paid": round(total_paid, 2),
+            "remaining_balance": round(rem, 2),
+            "status": lb.status,
+            "notes": lb.notes
+        })
+
     balances = calculate_account_balances(session)
 
     excel_bytes = generate_finance_excel(
@@ -650,7 +910,8 @@ def export_finance_excel(
         debit_entries=debit_entries,
         kind_donations=kind_donations,
         loans=loans_data,
-        balances=balances
+        balances=balances,
+        liabilities=liabilities_data
     )
 
     period_filename = "all_time"
@@ -670,3 +931,4 @@ def export_finance_excel(
             "Content-Disposition": f'attachment; filename="{filename}"'
         }
     )
+

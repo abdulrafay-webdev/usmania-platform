@@ -75,6 +75,11 @@ const MODULE_LABELS: Record<string, { label: string; desc: string; iconBg: strin
     desc: 'Loans taken, lenders list, partial repayments, balance tracking',
     iconBg: 'bg-indigo-50 text-indigo-700'
   },
+  finance_liability: {
+    label: 'Liabilities & Payables (واجبات، بلز و ادائیگیاں)',
+    desc: 'Pending utility bills, vendor/ration payables, contractor dues, partial payments',
+    iconBg: 'bg-rose-50 text-rose-700'
+  },
   settings_users: {
     label: 'Settings → Users & Roles (صارفین و اختیارات)',
     desc: 'Create accounts, assign roles, configure granular permission matrix',

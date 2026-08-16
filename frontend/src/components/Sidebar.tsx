@@ -15,6 +15,7 @@ import {
   ArrowDownRight,
   Gift,
   Landmark,
+  Receipt,
   ChevronDown,
   ChevronRight,
   Heart,
@@ -32,6 +33,7 @@ export type MainTabType =
   | 'finance-debit'
   | 'finance-kind-donation'
   | 'finance-loan'
+  | 'finance-liability'
   | 'settings-users';
 
 interface SidebarProps {
@@ -69,12 +71,14 @@ export default function Sidebar({
   const showFinanceDebit = canAccessModule('finance_debit');
   const showFinanceKind = canAccessModule('finance_kind_donation');
   const showFinanceLoan = canAccessModule('finance_loan');
+  const showFinanceLiability = canAccessModule('finance_liability');
   const showFinanceGroup =
     showFinanceDashboard ||
     showFinanceReceived ||
     showFinanceDebit ||
     showFinanceKind ||
     showFinanceLoan ||
+    showFinanceLiability ||
     showDonors;
   const showSettings = canAccessModule('settings_users');
 
@@ -292,6 +296,20 @@ export default function Sidebar({
                       >
                         <Landmark className="w-3.5 h-3.5 text-amber-700" />
                         <span>Loan (Qarz)</span>
+                      </button>
+                    )}
+
+                    {showFinanceLiability && (
+                      <button
+                        onClick={() => handleSelectTab('finance-liability')}
+                        className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                          activeTab === 'finance-liability'
+                            ? 'bg-[#FDF6E3] text-[#145A32] font-bold border border-[#145A32]/30'
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Receipt className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Liabilities & Bills</span>
                       </button>
                     )}
 

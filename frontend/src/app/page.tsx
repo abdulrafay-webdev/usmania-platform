@@ -19,6 +19,7 @@ import FinanceReceived from '@/components/finance/FinanceReceived';
 import FinanceDebit from '@/components/finance/FinanceDebit';
 import FinanceKindDonation from '@/components/finance/FinanceKindDonation';
 import FinanceLoan from '@/components/finance/FinanceLoan';
+import FinanceLiability from '@/components/finance/FinanceLiability';
 
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -84,6 +85,7 @@ export default function DashboardPage() {
     if (canAccessModule('finance_debit')) allowedTabs.push('finance-debit');
     if (canAccessModule('finance_kind_donation')) allowedTabs.push('finance-kind-donation');
     if (canAccessModule('finance_loan')) allowedTabs.push('finance-loan');
+    if (canAccessModule('finance_liability')) allowedTabs.push('finance-liability');
     if (hasPermission('finance_received', 'view')) allowedTabs.push('donors');
     if (canAccessModule('settings_users')) allowedTabs.push('settings-users');
 
@@ -392,6 +394,7 @@ export default function DashboardPage() {
           {activeTab === 'finance-debit' && <FinanceDebit />}
           {activeTab === 'finance-kind-donation' && <FinanceKindDonation />}
           {activeTab === 'finance-loan' && <FinanceLoan />}
+          {activeTab === 'finance-liability' && <FinanceLiability />}
 
           {activeTab === 'settings-users' && <UserSettings />}
         </div>

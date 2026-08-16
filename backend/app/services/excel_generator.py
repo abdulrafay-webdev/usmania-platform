@@ -127,7 +127,8 @@ def generate_finance_excel(
     debit_entries: list,
     kind_donations: list,
     loans: list,
-    balances: dict
+    balances: dict,
+    liabilities: list = []
 ) -> bytes:
     wb = openpyxl.Workbook()
     
@@ -258,7 +259,6 @@ def generate_finance_excel(
         if c_idx == 5:
             cell.number_format = '#,##0.00'
 
-    # Auto-fit columns
     for col in ws_rec.columns:
         max_l = max(len(str(cell.value or '')) for cell in col if cell.row > 2)
         col_letter = get_column_letter(col[0].column)
@@ -430,7 +430,76 @@ def generate_finance_excel(
         col_letter = get_column_letter(col[0].column)
         ws_loan.column_dimensions[col_letter].width = max(max_l + 4, 16)
 
+    # ---------------- 6. SHEET: LIABILITIES & PAYABLES (واجبات و بلز) ----------------
+    ws_liab = wb.create_sheet(title="Liabilities & Payables")
+    ws_liab.views.sheetView[0].showGridLines = True
+    liab_headers = [
+        "Title / Payable Details", "Category", "Bill / Incurred Date", "Due Date",
+        "Total Payable (PKR)", "Total Paid (PKR)", "Remaining Balance (PKR)", "Status", "Notes / Remarks"
+    ]
+    ws_liab.append(["JAMIA USMANIA TRUST — LIABILITIES, UTILITY BILLS & VENDOR PAYABLES"])
+    ws_liab.cell(row=1, column=1).font = Font(name="Calibri", size=13, bold=True, color="145A32")
+    ws_liab.append([f"Period: {period_str} | Total Liabilities: {len(liabilities)}"])
+    ws_liab.append([])
+    ws_liab.append(liab_headers)
+
+    for c_idx in range(1, len(liab_headers) + 1):
+        cell = ws_liab.cell(row=4, column=c_idx)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+
+    curr_row = 5
+    tot_liab_amount = 0.0
+    tot_liab_paid = 0.0
+    tot_liab_rem = 0.0
+
+    for lb in liabilities:
+        t_amt = lb.get("amount_total", 0.0) if isinstance(lb, dict) else lb.amount_total
+        p_amt = lb.get("total_paid", 0.0) if isinstance(lb, dict) else getattr(lb, "total_paid", 0.0)
+        r_amt = lb.get("remaining_balance", t_amt - p_amt) if isinstance(lb, dict) else getattr(lb, "remaining_balance", t_amt - p_amt)
+        title = lb.get("title", "") if isinstance(lb, dict) else lb.title
+        cat = lb.get("category", "") if isinstance(lb, dict) else lb.category
+        d_inc = lb.get("date_incurred", "") if isinstance(lb, dict) else lb.date_incurred
+        d_due = lb.get("due_date", "") if isinstance(lb, dict) else getattr(lb, "due_date", "")
+        status = lb.get("status", "Pending") if isinstance(lb, dict) else lb.status
+        notes = lb.get("notes", "") if isinstance(lb, dict) else getattr(lb, "notes", "")
+
+        tot_liab_amount += t_amt
+        tot_liab_paid += p_amt
+        tot_liab_rem += r_amt
+
+        ws_liab.append([
+            title, cat, str(d_inc), str(d_due) if d_due else "—",
+            t_amt, p_amt, r_amt, status, notes or ""
+        ])
+        for c_idx in range(1, len(liab_headers) + 1):
+            cell = ws_liab.cell(row=curr_row, column=c_idx)
+            cell.border = thin_border
+            if curr_row % 2 == 0:
+                cell.fill = zebra_fill
+            if c_idx in [5, 6, 7]:
+                cell.number_format = '#,##0.00'
+        curr_row += 1
+
+    # Total row
+    ws_liab.append(["TOTAL LIABILITIES & PAYABLES", "", "", "", tot_liab_amount, tot_liab_paid, tot_liab_rem, "", ""])
+    for c_idx in range(1, len(liab_headers) + 1):
+        cell = ws_liab.cell(row=curr_row, column=c_idx)
+        cell.fill = total_fill
+        cell.font = bold_font
+        cell.border = thin_border
+        if c_idx in [5, 6, 7]:
+            cell.number_format = '#,##0.00'
+
+    for col in ws_liab.columns:
+        max_l = max(len(str(cell.value or '')) for cell in col if cell.row > 2)
+        col_letter = get_column_letter(col[0].column)
+        ws_liab.column_dimensions[col_letter].width = max(max_l + 4, 16)
+
     buffer = io.BytesIO()
     wb.save(buffer)
     buffer.seek(0)
     return buffer.getvalue()
+

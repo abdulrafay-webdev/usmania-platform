@@ -43,6 +43,7 @@ class ModuleEnum(str, Enum):
     FINANCE_DEBIT = "finance_debit"
     FINANCE_KIND_DONATION = "finance_kind_donation"
     FINANCE_LOAN = "finance_loan"
+    FINANCE_LIABILITY = "finance_liability"
     SETTINGS_USERS = "settings_users"
 
 ALL_MODULES = [
@@ -53,6 +54,7 @@ ALL_MODULES = [
     ModuleEnum.FINANCE_DEBIT.value,
     ModuleEnum.FINANCE_KIND_DONATION.value,
     ModuleEnum.FINANCE_LOAN.value,
+    ModuleEnum.FINANCE_LIABILITY.value,
     ModuleEnum.SETTINGS_USERS.value
 ]
 
@@ -490,6 +492,51 @@ class LoanPayment(SQLModel, table=True):
     created_at: datetime_type = Field(default_factory=datetime_type.now)
 
 class LoanPaymentCreate(SQLModel):
+    amount_paid: float
+    date_paid: Optional[date_type] = None
+    paid_from_account: str
+    notes: Optional[str] = ""
+
+
+# 6. Liability (واجبات / ادائیگیاں / بلز)
+class Liability(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    title: str = Field(index=True, description="Title/Name of liability e.g. K-Electric Bill Jan 2026, Ration Supplier")
+    category: str = Field(default="Utility Bill", description="Utility Bill, Vendor / Supplier, Maintenance, Salary, Other")
+    amount_total: float = Field(default=0.0, description="Total amount due/payable")
+    date_incurred: date_type = Field(default_factory=date_type.today, description="Bill/Invoice issue date")
+    due_date: Optional[date_type] = Field(default=None, description="Due date for payment")
+    status: str = Field(default="Pending", description="Pending, Partially Paid, Fully Paid")
+    notes: Optional[str] = Field(default="", description="Invoice number, vendor contact, remarks")
+    created_at: datetime_type = Field(default_factory=datetime_type.now)
+
+class LiabilityCreate(SQLModel):
+    title: str
+    category: str = "Utility Bill"
+    amount_total: float
+    date_incurred: Optional[date_type] = None
+    due_date: Optional[date_type] = None
+    notes: Optional[str] = ""
+
+class LiabilityUpdate(SQLModel):
+    title: Optional[str] = None
+    category: Optional[str] = None
+    amount_total: Optional[float] = None
+    date_incurred: Optional[date_type] = None
+    due_date: Optional[date_type] = None
+    notes: Optional[str] = None
+
+# 7. LiabilityPayment (واجبات کی جزوی / مکمل ادائیگی)
+class LiabilityPayment(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    liability_id: str = Field(index=True, foreign_key="liability.id")
+    amount_paid: float = Field(default=0.0)
+    date_paid: date_type = Field(default_factory=date_type.today)
+    paid_from_account: str = Field(description="Cash, JazzCash, Easypaisa, Meezan Bank")
+    notes: Optional[str] = Field(default="")
+    created_at: datetime_type = Field(default_factory=datetime_type.now)
+
+class LiabilityPaymentCreate(SQLModel):
     amount_paid: float
     date_paid: Optional[date_type] = None
     paid_from_account: str

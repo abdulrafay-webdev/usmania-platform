@@ -195,6 +195,38 @@ export interface Loan {
   created_at: string;
 }
 
+// ----------------- LIABILITY INTERFACES -----------------
+export interface LiabilityPayment {
+  id: string;
+  liability_id: string;
+  amount_paid: number;
+  date_paid: string;
+  paid_from_account: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface Liability {
+  id: string;
+  title: string;
+  category: 'Utility Bill' | 'Vendor / Supplier' | 'Maintenance / Construction' | 'Salary / Honorarium' | 'Other' | string;
+  amount_total: number;
+  total_paid: number;
+  remaining_balance: number;
+  date_incurred: string;
+  due_date?: string | null;
+  status: 'Pending' | 'Partially Paid' | 'Fully Paid' | string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface LiabilityDetailResponse {
+  liability: Liability;
+  total_paid: number;
+  remaining_balance: number;
+  payments: LiabilityPayment[];
+}
+
 export interface AccountBalancesResponse {
   accounts: {
     Cash: number;
@@ -217,6 +249,7 @@ export interface DashboardSummaryResponse {
   today_debit: number;
   today_net: number;
   active_loan_remaining: number;
+  active_liabilities_remaining?: number;
   chart_income_vs_expense: Array<{ date: string; Income: number; Expense: number }>;
   chart_account_pie: Array<{ name: string; value: number }>;
   chart_received_split: Array<{ type: string; amount: number }>;
@@ -227,6 +260,16 @@ export interface DashboardSummaryResponse {
     amount_taken: number;
     total_paid: number;
     remaining: number;
+    status: string;
+  }>;
+  liabilities_overviews?: Array<{
+    id: string;
+    title: string;
+    category: string;
+    amount_total: number;
+    total_paid: number;
+    remaining: number;
+    due_date?: string | null;
     status: string;
   }>;
   recent_transactions: Array<{
@@ -819,6 +862,112 @@ export async function deleteLoan(id: string): Promise<void> {
   if (!res.ok) throw new Error('Failed to delete loan');
 }
 
+// ----------------- LIABILITIES API -----------------
+export async function getLiabilities(params?: { status?: string; category?: string; search?: string }): Promise<Liability[]> {
+  const query = new URLSearchParams();
+  if (params?.status) query.append('status', params.status);
+  if (params?.category) query.append('category', params.category);
+  if (params?.search) query.append('search', params.search);
+
+  const res = await fetch(`${API_BASE_URL}/api/finance/liabilities?${query.toString()}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
+  if (!res.ok) throw new Error('Failed to fetch liabilities');
+  return res.json();
+}
+
+export async function getLiabilityDetail(id: string): Promise<LiabilityDetailResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/liabilities/${id}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
+  if (!res.ok) throw new Error('Failed to fetch liability details');
+  return res.json();
+}
+
+export async function createLiability(payload: {
+  title: string;
+  category?: string;
+  amount_total: number;
+  date_incurred?: string;
+  due_date?: string;
+  notes?: string;
+}): Promise<Liability> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/liabilities`, {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to create liability');
+  }
+  return res.json();
+}
+
+export async function updateLiability(id: string, payload: {
+  title?: string;
+  category?: string;
+  amount_total?: number;
+  date_incurred?: string;
+  due_date?: string;
+  notes?: string;
+}): Promise<Liability> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/liabilities/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to update liability');
+  }
+  return res.json();
+}
+
+export async function addLiabilityPayment(liabilityId: string, payload: {
+  amount_paid: number;
+  date_paid?: string;
+  paid_from_account: string;
+  notes?: string;
+}): Promise<LiabilityPayment> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/liabilities/${liabilityId}/payments`, {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to record liability payment');
+  }
+  return res.json();
+}
+
+export async function getLiabilityPayments(liabilityId: string): Promise<LiabilityPayment[]> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/liabilities/${liabilityId}/payments`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
+  if (!res.ok) throw new Error('Failed to fetch liability payments');
+  return res.json();
+}
+
+export async function deleteLiability(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/finance/liabilities/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) throw new Error('Failed to delete liability');
+}
+
 export async function getAccountBalances(): Promise<AccountBalancesResponse> {
   const res = await fetch(`${API_BASE_URL}/api/finance/accounts/balances`, {
     headers: getAuthHeaders(),
@@ -957,6 +1106,13 @@ export const getFinanceLoanDetail = getLoanDetail;
 export const createFinanceLoan = createLoan;
 export const addFinanceLoanPayment = addLoanPayment;
 export const deleteFinanceLoan = deleteLoan;
+
+export const getFinanceLiabilities = getLiabilities;
+export const getFinanceLiabilityDetail = getLiabilityDetail;
+export const createFinanceLiability = createLiability;
+export const updateFinanceLiability = updateLiability;
+export const addFinanceLiabilityPayment = addLiabilityPayment;
+export const deleteFinanceLiability = deleteLiability;
 
 export const getFinanceAccountBalances = getAccountBalances;
 export const getFinanceDashboardSummary = getDashboardSummary;
