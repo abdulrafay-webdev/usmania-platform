@@ -38,11 +38,12 @@ def seed_default_roles_and_admin(session: Session):
         },
         {
             "name": "Academic Manager",
-            "description": "Full access to Students and Teachers modules only.",
+            "description": "Full access to Students, Teachers, and Staff modules.",
             "is_system_role": True,
             "permissions": {
                 ModuleEnum.STUDENTS.value: {"can_view": True, "can_create": True, "can_edit": True, "can_delete": True},
                 ModuleEnum.TEACHERS.value: {"can_view": True, "can_create": True, "can_edit": True, "can_delete": True},
+                ModuleEnum.STAFF.value: {"can_view": True, "can_create": True, "can_edit": True, "can_delete": True},
             }
         },
         {
@@ -60,11 +61,12 @@ def seed_default_roles_and_admin(session: Session):
         },
         {
             "name": "Staff (Front Desk)",
-            "description": "View and Create access for Admissions and Receiving Donations (no edit/delete rights).",
+            "description": "View and Create access for Admissions, Faculty, Staff, and Receiving Donations (no edit/delete rights).",
             "is_system_role": True,
             "permissions": {
                 ModuleEnum.STUDENTS.value: {"can_view": True, "can_create": True, "can_edit": False, "can_delete": False},
                 ModuleEnum.TEACHERS.value: {"can_view": True, "can_create": True, "can_edit": False, "can_delete": False},
+                ModuleEnum.STAFF.value: {"can_view": True, "can_create": True, "can_edit": False, "can_delete": False},
                 ModuleEnum.FINANCE_RECEIVED.value: {"can_view": True, "can_create": True, "can_edit": False, "can_delete": False},
             }
         },

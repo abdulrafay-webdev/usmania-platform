@@ -6,10 +6,13 @@ import {
   updateStudent,
   createTeacher,
   updateTeacher,
+  createStaff,
+  updateStaff,
   uploadPicture,
   getTeachers,
   Student,
-  Teacher
+  Teacher,
+  Staff
 } from '@/lib/api';
 import { compressImageFile } from '@/lib/imageCompressor';
 import {
@@ -28,15 +31,16 @@ import {
   Receipt,
   CreditCard,
   Trash2,
-  FileCheck
+  FileCheck,
+  Briefcase
 } from 'lucide-react';
 
 interface AdmissionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  initialRole?: 'student' | 'teacher';
-  editRecord?: Student | Teacher | null;
+  initialRole?: 'student' | 'teacher' | 'staff';
+  editRecord?: Student | Teacher | Staff | null;
 }
 
 export default function AdmissionModal({
@@ -47,7 +51,7 @@ export default function AdmissionModal({
   editRecord = null
 }: AdmissionModalProps) {
   const isEditing = !!editRecord;
-  const [role, setRole] = useState<'student' | 'teacher'>(initialRole);
+  const [role, setRole] = useState<'student' | 'teacher' | 'staff'>(initialRole);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -99,6 +103,7 @@ export default function AdmissionModal({
     previous_institute: '',
     student_class: 'Hifz-ul-Quran',
     subject: 'Tajweed & Qirat',
+    designation: 'Staff',
     admission_date: new Date().toISOString().split('T')[0],
     assigned_teacher_id: '',
     assigned_teacher_name: '',
@@ -128,12 +133,14 @@ export default function AdmissionModal({
 
       if (editRecord) {
         const isStud = 'student_class' in editRecord;
-        setRole(isStud ? 'student' : 'teacher');
+        const isStaff = 'designation' in editRecord;
+        setRole(isStud ? 'student' : isStaff ? 'staff' : 'teacher');
         setImagePreview(editRecord.picture || '');
         setSelectedFile(null);
 
         const stud = editRecord as Student;
         const teach = editRecord as Teacher;
+        const staffRec = editRecord as Staff;
 
         if (isStud) {
           setDocZakatPreview(stud.doc_zakat || '');
@@ -142,6 +149,13 @@ export default function AdmissionModal({
           setDocZakatFile(null);
           setDocBirthCertFile(null);
           setDocActivityDiaryFile(null);
+        } else if (isStaff) {
+          setDocContractPreview(staffRec.doc_contract || '');
+          setDocPayslipPreview(staffRec.doc_payslip || '');
+          setDocCnicPreview(staffRec.doc_cnic || '');
+          setDocContractFile(null);
+          setDocPayslipFile(null);
+          setDocCnicFile(null);
         } else {
           setDocContractPreview(teach.doc_contract || '');
           setDocPayslipPreview(teach.doc_payslip || '');
@@ -169,7 +183,8 @@ export default function AdmissionModal({
           institution: editRecord.institution || 'Jamia Usmania Main Campus',
           previous_institute: editRecord.previous_institute || '',
           student_class: stud.student_class || 'Hifz-ul-Quran',
-          subject: editRecord.subject || 'Tajweed & Qirat',
+          subject: teach.subject || 'Tajweed & Qirat',
+          designation: staffRec.designation || 'Staff',
           admission_date: editRecord.admission_date || new Date().toISOString().split('T')[0],
           assigned_teacher_id: stud.assigned_teacher_id || '',
           assigned_teacher_name: stud.assigned_teacher_name || '',
@@ -223,6 +238,7 @@ export default function AdmissionModal({
           previous_institute: '',
           student_class: 'Hifz-ul-Quran',
           subject: 'Tajweed & Qirat',
+          designation: 'Staff',
           admission_date: new Date().toISOString().split('T')[0],
           assigned_teacher_id: '',
           assigned_teacher_name: '',
@@ -359,8 +375,54 @@ export default function AdmissionModal({
             admission_date: formData.admission_date
           });
         }
+      } else if (role === 'staff') {
+        // 3. Upload optional staff documents
+        let contractUrl = docContractPreview;
+        if (docContractFile) {
+          contractUrl = await uploadPicture(docContractFile);
+        }
+
+        let payslipUrl = docPayslipPreview;
+        if (docPayslipFile) {
+          payslipUrl = await uploadPicture(docPayslipFile);
+        }
+
+        let cnicDocUrl = docCnicPreview;
+        if (docCnicFile) {
+          cnicDocUrl = await uploadPicture(docCnicFile);
+        }
+
+        const payload = {
+          name: formData.name,
+          father_guardian_name: formData.father_guardian_name,
+          email: formData.email,
+          nic: formData.nic,
+          dob: formData.dob,
+          gender: formData.gender,
+          contact: formData.contact,
+          current_address: formData.current_address,
+          permanent_address: formData.permanent_address,
+          city: formData.city,
+          country: formData.country,
+          institution: formData.institution,
+          previous_institute: formData.previous_institute,
+          designation: formData.designation || 'Staff',
+          picture: pictureUrl,
+          doc_contract: contractUrl,
+          doc_payslip: payslipUrl,
+          doc_cnic: cnicDocUrl
+        };
+
+        if (isEditing && editRecord) {
+          await updateStaff(editRecord.id, payload);
+        } else {
+          await createStaff({
+            ...payload,
+            admission_date: formData.admission_date
+          });
+        }
       } else {
-        // 3. Upload optional teacher documents
+        // 4. Upload optional teacher documents
         let contractUrl = docContractPreview;
         if (docContractFile) {
           contractUrl = await uploadPicture(docContractFile);
@@ -430,8 +492,12 @@ export default function AdmissionModal({
             <div>
               <h2 className="text-base sm:text-lg font-bold font-serif tracking-wide">
                 {isEditing
-                  ? `Edit ${role === 'student' ? 'Student' : 'Teacher'} Record (${editRecord?.roll_no})`
-                  : role === 'student' ? 'Student Admission Form' : 'Teacher Registration Form'}
+                  ? `Edit ${role === 'student' ? 'Student' : role === 'teacher' ? 'Teacher' : 'Staff'} Record (${editRecord?.roll_no})`
+                  : role === 'student'
+                  ? 'Student Admission Form'
+                  : role === 'teacher'
+                  ? 'Teacher Registration Form'
+                  : 'Staff Registration Form'}
               </h2>
               <p className="text-[11px] text-[#FDF6E3]/80">
                 Jamia Usmania Official Platform Database
@@ -454,7 +520,7 @@ export default function AdmissionModal({
               <button
                 type="button"
                 onClick={() => setRole('student')}
-                className={`px-3 sm:px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                className={`px-3 sm:px-4 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
                   role === 'student'
                     ? 'bg-[#145A32] text-white shadow-xs'
                     : 'text-gray-600 hover:text-gray-900'
@@ -465,13 +531,24 @@ export default function AdmissionModal({
               <button
                 type="button"
                 onClick={() => setRole('teacher')}
-                className={`px-3 sm:px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                className={`px-3 sm:px-4 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
                   role === 'teacher'
                     ? 'bg-[#145A32] text-white shadow-xs'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 Teacher Record
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('staff')}
+                className={`px-3 sm:px-4 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  role === 'staff'
+                    ? 'bg-[#145A32] text-white shadow-xs'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Staff Record
               </button>
             </div>
 
@@ -535,7 +612,7 @@ export default function AdmissionModal({
             {/* Full Name */}
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
-                {role === 'student' ? 'Student Full Name' : 'Teacher Full Name'} <span className="text-red-500">*</span>
+                {role === 'student' ? 'Student Full Name' : role === 'teacher' ? 'Teacher Full Name' : 'Staff Full Name'} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -802,7 +879,7 @@ export default function AdmissionModal({
                             type="text"
                             value={formData.hostel_bed_no}
                             onChange={(e) => setFormData({ ...formData, hostel_bed_no: e.target.value })}
-                            placeholder="e.g. Bed A / Bed 2"
+                            placeholder="e.g. Bed 02"
                             className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
                           />
                         </div>
@@ -810,7 +887,7 @@ export default function AdmissionModal({
                     )}
                   </div>
 
-                  {/* 2. Zakat Eligible Checkbox & Dynamic Syed / Non-Syed Option */}
+                  {/* 2. Zakat Eligible Checkbox & Syed Status Sub-Dropdown */}
                   <div className="bg-white p-3 rounded-lg border border-gray-200 space-y-2.5">
                     <div className="flex items-center gap-2">
                       <input
@@ -820,47 +897,35 @@ export default function AdmissionModal({
                         onChange={(e) => setFormData({ ...formData, is_zakat_eligible: e.target.checked })}
                         className="rounded border-gray-300 text-[#145A32] focus:ring-[#145A32] w-4 h-4 cursor-pointer"
                       />
-                      <label htmlFor="zakat_eligible" className="text-xs font-bold text-[#145A32] cursor-pointer flex items-center gap-1.5">
+                      <label htmlFor="zakat_eligible" className="text-xs font-bold text-gray-800 cursor-pointer flex items-center gap-1.5">
                         <HeartHandshake className="w-3.5 h-3.5 text-amber-600" />
-                        Zakat Eligible (مستحق زکوۃ)
+                        Eligible for Zakat (مستحق زکوۃ طالب علم)
                       </label>
                     </div>
 
                     {formData.is_zakat_eligible && (
                       <div className="pt-2 pl-6 border-t border-gray-100 animate-fadeIn">
-                        <label className="block text-[11px] font-bold text-gray-700 mb-1.5">
-                          Syed / Non-Syed Status (سید / غیر سید)
+                        <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                          Syed / Non-Syed Status (سید / غیر سید حیثیت)
                         </label>
-                        <div className="flex items-center gap-6">
-                          <label className="inline-flex items-center gap-2 text-xs text-gray-800 cursor-pointer font-medium">
-                            <input
-                              type="radio"
-                              name="zakat_syed_status"
-                              value="Non-Syed"
-                              checked={formData.zakat_syed_status === 'Non-Syed'}
-                              onChange={() => setFormData({ ...formData, zakat_syed_status: 'Non-Syed' })}
-                              className="text-[#145A32] focus:ring-[#145A32]"
-                            />
-                            <span>Non-Syed (غیر سید - زکوۃ مستحق)</span>
-                          </label>
-
-                          <label className="inline-flex items-center gap-2 text-xs text-amber-900 cursor-pointer font-bold">
-                            <input
-                              type="radio"
-                              name="zakat_syed_status"
-                              value="Syed"
-                              checked={formData.zakat_syed_status === 'Syed'}
-                              onChange={() => setFormData({ ...formData, zakat_syed_status: 'Syed' })}
-                              className="text-[#145A32] focus:ring-[#145A32]"
-                            />
-                            <span>Syed (سید - امداد برائے سادات / عطیات)</span>
-                          </label>
-                        </div>
+                        <select
+                          value={formData.zakat_syed_status}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              zakat_syed_status: e.target.value as 'Non-Syed' | 'Syed'
+                            })
+                          }
+                          className="w-full sm:w-60 px-2.5 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32] bg-white"
+                        >
+                          <option value="Non-Syed">Non-Syed (غیر سید - مستحق زکوۃ)</option>
+                          <option value="Syed">Syed (سید - عطیات/امدادی فنڈ)</option>
+                        </select>
                       </div>
                     )}
                   </div>
 
-                  {/* 3. Usmania Academy Checkbox & Dynamic Class Dropdown (Montessori to Matric) */}
+                  {/* 3. Usmania Academy School Checkbox & Class Dropdown */}
                   <div className="bg-white p-3 rounded-lg border border-gray-200 space-y-2.5">
                     <div className="flex items-center gap-2">
                       <input
@@ -906,6 +971,23 @@ export default function AdmissionModal({
                   </div>
                 </div>
               </>
+            ) : role === 'staff' ? (
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Staff Role / Designation (عہدہ و ذمہ داری) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.designation}
+                  onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                  placeholder="e.g. Accountant, Security Incharge, Cook, Hostel Warden, Electrician, Office Assistant"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#145A32]/20 focus:border-[#145A32]"
+                />
+                <p className="text-[11px] text-gray-500 mt-1">
+                  مثلاً: اکاؤنٹنٹ، سیکیورٹی انچارج، ہاسٹل وارڈن، باورچی، الیکٹریشن، ڈرائیور، آفس اسٹاف وغیرہ
+                </p>
+              </div>
             ) : (
               <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-gray-700 mb-1">
@@ -923,14 +1005,18 @@ export default function AdmissionModal({
             )}
 
             {/* ========================================================================= */}
-            {/* OPTIONAL DOCUMENT UPLOADS SECTION (3 FOR STUDENTS / 3 FOR TEACHERS)       */}
+            {/* OPTIONAL DOCUMENT UPLOADS SECTION (3 FOR STUDENTS / 3 FOR TEACHERS & STAFF) */}
             {/* ========================================================================= */}
             <div className="sm:col-span-2 space-y-3 pt-2">
               <div className="flex items-center justify-between border-b border-gray-200 pb-2">
                 <div className="flex items-center gap-2 text-xs font-bold text-[#145A32] uppercase tracking-wider">
                   <FileCheck className="w-4 h-4 text-[#145A32]" />
                   <span>
-                    {role === 'student' ? 'Optional Student Documents' : 'Optional Teacher Documents'}
+                    {role === 'student'
+                      ? 'Optional Student Documents'
+                      : role === 'teacher'
+                      ? 'Optional Teacher Documents'
+                      : 'Optional Staff Documents'}
                   </span>
                 </div>
                 <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
@@ -1099,18 +1185,18 @@ export default function AdmissionModal({
                 </div>
               )}
 
-              {/* Teacher 3 Documents */}
-              {role === 'teacher' && (
+              {/* Teacher & Staff 3 Documents */}
+              {(role === 'teacher' || role === 'staff') && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {/* 1. Teacher Contract */}
+                  {/* 1. Contract */}
                   <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col justify-between space-y-2">
                     <div>
                       <span className="text-[11px] font-bold text-gray-800 flex items-center gap-1.5">
                         <FileText className="w-3.5 h-3.5 text-[#145A32]" />
-                        Teacher Contract / Agreement
+                        {role === 'staff' ? 'Staff Contract / Agreement' : 'Teacher Contract / Agreement'}
                       </span>
                       <p className="text-[10px] text-gray-500 mt-0.5">
-                        معاہدہ تدریس / ایگریمنٹ
+                        {role === 'staff' ? 'معاہدہ ملازمت / ایگریمنٹ' : 'معاہدہ تدریس / ایگریمنٹ'}
                       </p>
                     </div>
 

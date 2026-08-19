@@ -275,6 +275,9 @@ def build_front_card(record_data: dict, record_type: str) -> Table:
         if record_data.get('assigned_teacher_name'):
             u_teacher = truncate_text(record_data.get('assigned_teacher_name'), 20)
             fields.append([Paragraph("Teacher:", label_style), Paragraph(u_teacher, ParagraphStyle('UT', parent=value_style, fontName='Helvetica-Bold', textColor=PRIMARY_GREEN))])
+    elif record_type == "Staff":
+        desig = truncate_text(record_data.get('designation', 'Staff'), 18)
+        fields.append([Paragraph("Role / Desig:", label_style), Paragraph(desig, value_style)])
     else:
         subj = truncate_text(record_data.get('subject', 'N/A'), 18)
         fields.append([Paragraph("Subject:", label_style), Paragraph(subj, value_style)])

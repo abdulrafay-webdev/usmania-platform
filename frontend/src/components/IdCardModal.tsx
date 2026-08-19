@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Student, Teacher, getStudentIdCardDownloadUrl, getTeacherIdCardDownloadUrl } from '@/lib/api';
+import {
+  Student,
+  Teacher,
+  Staff,
+  getStudentIdCardDownloadUrl,
+  getTeacherIdCardDownloadUrl,
+  getStaffIdCardDownloadUrl
+} from '@/lib/api';
 import {
   X,
   Printer,
@@ -16,8 +23,8 @@ import {
 interface IdCardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  record: Student | Teacher | null;
-  type: 'student' | 'teacher';
+  record: Student | Teacher | Staff | null;
+  type: 'student' | 'teacher' | 'staff';
 }
 
 export default function IdCardModal({
@@ -31,16 +38,20 @@ export default function IdCardModal({
   if (!isOpen || !record) return null;
 
   const isStudent = type === 'student';
+  const isStaff = type === 'staff';
   const student = isStudent ? (record as Student) : null;
-  const teacher = !isStudent ? (record as Teacher) : null;
+  const teacher = type === 'teacher' ? (record as Teacher) : null;
+  const staff = isStaff ? (record as Staff) : null;
 
   const downloadUrl = isStudent
     ? getStudentIdCardDownloadUrl(record.id)
+    : isStaff
+    ? getStaffIdCardDownloadUrl(record.id)
     : getTeacherIdCardDownloadUrl(record.id);
 
   const fatherName = isStudent
     ? student?.father_name || student?.father_guardian_name || 'N/A'
-    : teacher?.father_guardian_name || 'N/A';
+    : record.father_guardian_name || 'N/A';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
@@ -134,7 +145,7 @@ export default function IdCardModal({
                     JAMIA USMANIA TRUST
                   </h4>
                   <p className="text-[9px] font-bold text-amber-700 tracking-wider uppercase truncate">
-                    OFFICIAL {isStudent ? 'STUDENT' : 'FACULTY'} IDENTITY CARD
+                    OFFICIAL {isStudent ? 'STUDENT' : isStaff ? 'STAFF' : 'FACULTY'} IDENTITY CARD
                   </p>
                   <p className="text-[8px] font-semibold text-[#145A32] tracking-wide truncate">
                     www.usmaniatrust.org
@@ -185,6 +196,11 @@ export default function IdCardModal({
                         </div>
                       )}
                     </>
+                  ) : isStaff ? (
+                    <div className="text-gray-700 flex items-center gap-1 truncate text-[10px]">
+                      <span className="font-bold text-[#145A32]">Role:</span>
+                      <span className="font-semibold text-gray-900 truncate">{staff?.designation || 'Staff'}</span>
+                    </div>
                   ) : (
                     <div className="text-gray-700 flex items-center gap-1 truncate text-[10px]">
                       <span className="font-bold text-[#145A32]">Subject:</span>

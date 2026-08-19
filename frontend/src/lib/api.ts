@@ -131,6 +131,33 @@ export interface Teacher {
   doc_cnic?: string;
 }
 
+export interface Staff {
+  id: string;
+  roll_no: string;
+  name: string;
+  picture: string;
+  email?: string;
+  nic: string;
+  dob: string;
+  gender: 'Male' | 'Female' | string;
+  contact: string;
+  current_address: string;
+  permanent_address: string;
+  city: string;
+  country: string;
+  institution: string;
+  previous_institute?: string;
+  admission_date: string;
+  islamic_date: string;
+  designation: string; // Staff role / designation text field
+  father_guardian_name: string;
+
+  // Optional Documents / Images
+  doc_contract?: string;
+  doc_payslip?: string;
+  doc_cnic?: string;
+}
+
 // ----------------- FINANCE INTERFACES -----------------
 export interface ReceivedEntry {
   id: string;
@@ -655,6 +682,70 @@ export async function deleteTeacher(id: string): Promise<void> {
 }
 
 
+// ----------------- STAFF API -----------------
+export async function getStaff(query: string = ''): Promise<Staff[]> {
+  const endpoint = query.trim()
+    ? `${API_BASE_URL}/api/staff/search?q=${encodeURIComponent(query)}`
+    : `${API_BASE_URL}/api/staff`;
+  const res = await fetch(endpoint, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    cache: 'no-store'
+  });
+  if (!res.ok) throw new Error('Failed to fetch staff members');
+  return res.json();
+}
+
+export async function getStaffById(id: string): Promise<Staff> {
+  const res = await fetch(`${API_BASE_URL}/api/staff/${id}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) throw new Error('Failed to fetch staff profile');
+  return res.json();
+}
+
+export async function createStaff(payload: Partial<Staff>): Promise<Staff> {
+  const res = await fetch(`${API_BASE_URL}/api/staff`, {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to submit staff registration');
+  }
+  return res.json();
+}
+
+export async function updateStaff(id: string, payload: Partial<Staff>): Promise<Staff> {
+  const res = await fetch(`${API_BASE_URL}/api/staff/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to update staff record');
+  }
+  return res.json();
+}
+
+export async function deleteStaff(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/staff/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to delete staff record');
+  }
+}
+
+
 // ----------------- IMAGE UPLOAD -----------------
 export async function uploadPicture(file: File): Promise<string> {
   const formData = new FormData();
@@ -1061,6 +1152,11 @@ export function getTeacherPdfDownloadUrl(id: string): string {
   return `${API_BASE_URL}/api/teachers/${id}/pdf${tokenParam ? `?${tokenParam}` : ''}`;
 }
 
+export function getStaffPdfDownloadUrl(id: string): string {
+  const tokenParam = getAuthTokenParam();
+  return `${API_BASE_URL}/api/staff/${id}/pdf${tokenParam ? `?${tokenParam}` : ''}`;
+}
+
 export function getStudentIdCardDownloadUrl(id: string): string {
   const tokenParam = getAuthTokenParam();
   return `${API_BASE_URL}/api/students/${id}/id-card${tokenParam ? `?${tokenParam}` : ''}`;
@@ -1069,6 +1165,11 @@ export function getStudentIdCardDownloadUrl(id: string): string {
 export function getTeacherIdCardDownloadUrl(id: string): string {
   const tokenParam = getAuthTokenParam();
   return `${API_BASE_URL}/api/teachers/${id}/id-card${tokenParam ? `?${tokenParam}` : ''}`;
+}
+
+export function getStaffIdCardDownloadUrl(id: string): string {
+  const tokenParam = getAuthTokenParam();
+  return `${API_BASE_URL}/api/staff/${id}/id-card${tokenParam ? `?${tokenParam}` : ''}`;
 }
 
 export function getFinanceExcelDownloadUrl(dateFrom?: string, dateTo?: string): string {
@@ -1096,6 +1197,26 @@ export async function downloadTeacherPdf(id: string, teacherName: string = 'Teac
   const a = document.createElement('a');
   a.href = url;
   a.download = `Jamia_Usmania_Teacher_${teacherName.replace(/\s+/g, '_')}_Profile.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+export async function downloadStaffPdf(id: string, staffName: string = 'Staff'): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/staff/${id}/pdf`, {
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to download Staff PDF');
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Jamia_Usmania_Staff_${staffName.replace(/\s+/g, '_')}_Profile.pdf`;
   document.body.appendChild(a);
   a.click();
   window.URL.revokeObjectURL(url);
@@ -1144,6 +1265,17 @@ export async function exportBulkTeachersExcel(ids: string[]): Promise<Blob> {
   return res.blob();
 }
 
+export async function exportBulkStaffExcel(ids: string[]): Promise<Blob> {
+  const res = await fetch(`${API_BASE_URL}/api/staff/export`, {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    credentials: 'include',
+    body: JSON.stringify({ ids })
+  });
+  if (!res.ok) throw new Error('Failed to export staff excel');
+  return res.blob();
+}
+
 // Backward-compatibility aliases for Finance components
 export const getFinanceReceived = getReceivedEntries;
 export const createFinanceReceived = createReceivedEntry;
@@ -1173,12 +1305,19 @@ export const deleteFinanceLiability = deleteLiability;
 export const getFinanceAccountBalances = getAccountBalances;
 export const getFinanceDashboardSummary = getDashboardSummary;
 
-export async function exportSelectedExcel(type: 'students' | 'teachers', ids: string[]) {
-  const blob = type === 'students' ? await exportBulkStudentsExcel(ids) : await exportBulkTeachersExcel(ids);
+export async function exportSelectedExcel(type: 'students' | 'teachers' | 'staff', ids: string[]) {
+  const blob =
+    type === 'students'
+      ? await exportBulkStudentsExcel(ids)
+      : type === 'teachers'
+      ? await exportBulkTeachersExcel(ids)
+      : await exportBulkStaffExcel(ids);
+
+  const titleType = type === 'students' ? 'Students' : type === 'teachers' ? 'Teachers' : 'Staff';
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Jamia_Usmania_${type === 'students' ? 'Students' : 'Teachers'}_Export.xlsx`;
+  a.download = `Jamia_Usmania_${titleType}_Export.xlsx`;
   document.body.appendChild(a);
   a.click();
   window.URL.revokeObjectURL(url);

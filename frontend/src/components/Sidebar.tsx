@@ -21,12 +21,14 @@ import {
   Heart,
   Settings,
   Shield,
+  Briefcase,
   X
 } from 'lucide-react';
 
 export type MainTabType =
   | 'students'
   | 'teachers'
+  | 'staff'
   | 'donors'
   | 'finance-dashboard'
   | 'finance-received'
@@ -39,10 +41,11 @@ export type MainTabType =
 interface SidebarProps {
   activeTab: MainTabType;
   onTabChange: (tab: MainTabType) => void;
-  onOpenAdmissionModal: (type?: 'student' | 'teacher') => void;
+  onOpenAdmissionModal: (type?: 'student' | 'teacher' | 'staff') => void;
   onLogout: () => void;
   studentCount?: number;
   teacherCount?: number;
+  staffCount?: number;
   isOpen?: boolean;
   onClose?: () => void;
 }
@@ -54,6 +57,7 @@ export default function Sidebar({
   onLogout,
   studentCount = 0,
   teacherCount = 0,
+  staffCount = 0,
   isOpen = false,
   onClose
 }: SidebarProps) {
@@ -65,6 +69,7 @@ export default function Sidebar({
   // Granular Permission Visibility
   const showStudents = canAccessModule('students');
   const showTeachers = canAccessModule('teachers');
+  const showStaff = canAccessModule('staff');
   const showDonors = hasPermission('finance_received', 'view');
   const showFinanceDashboard = hasPermission('finance_dashboard', 'view');
   const showFinanceReceived = canAccessModule('finance_received');
@@ -82,7 +87,10 @@ export default function Sidebar({
     showDonors;
   const showSettings = canAccessModule('settings_users');
 
-  const canCreateAdmission = hasPermission('students', 'create') || hasPermission('teachers', 'create');
+  const canCreateAdmission =
+    hasPermission('students', 'create') ||
+    hasPermission('teachers', 'create') ||
+    hasPermission('staff', 'create');
 
   const handleSelectTab = (tab: MainTabType) => {
     onTabChange(tab);
@@ -194,6 +202,34 @@ export default function Sidebar({
                     }`}
                   >
                     {teacherCount}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {/* Staff Tab */}
+            {showStaff && (
+              <button
+                onClick={() => handleSelectTab('staff')}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg font-medium text-sm transition-all cursor-pointer ${
+                  activeTab === 'staff'
+                    ? 'bg-[#145A32] text-white shadow-xs'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Briefcase className={`w-4 h-4 ${activeTab === 'staff' ? 'text-white' : 'text-[#145A32]'}`} />
+                  <span>Staff</span>
+                </div>
+                {hasPermission('staff', 'view') && (
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                      activeTab === 'staff'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-[#FDF6E3] text-[#145A32] border border-[#145A32]/20'
+                    }`}
+                  >
+                    {staffCount}
                   </span>
                 )}
               </button>

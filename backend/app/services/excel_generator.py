@@ -36,6 +36,19 @@ def generate_records_excel(records: list[dict], record_type: str = "Student") ->
             "gender", "dob", "admission_date", "islamic_date",
             "current_address", "permanent_address", "city", "country", "institution", "previous_institute"
         ]
+    elif record_type == "Staff":
+        headers = [
+            "Staff ID / Roll No", "Full Name", "Father / Guardian", "Designation / Role",
+            "CNIC / B-Form", "Email", "Contact",
+            "Gender", "Date of Birth", "Joining Date", "Islamic (Hijri) Date",
+            "Current Address", "Permanent Address", "City", "Country", "Institution", "Previous Institute"
+        ]
+        keys = [
+            "roll_no", "name", "father_guardian_name", "designation",
+            "nic", "email", "contact",
+            "gender", "dob", "admission_date", "islamic_date",
+            "current_address", "permanent_address", "city", "country", "institution", "previous_institute"
+        ]
     else:
         headers = [
             "Roll No", "Full Name", "Father / Guardian", "Subject Taught",

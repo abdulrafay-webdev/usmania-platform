@@ -38,6 +38,7 @@ class SyedStatusEnum(str, Enum):
 class ModuleEnum(str, Enum):
     STUDENTS = "students"
     TEACHERS = "teachers"
+    STAFF = "staff"
     FINANCE_DASHBOARD = "finance_dashboard"
     FINANCE_RECEIVED = "finance_received"
     FINANCE_DEBIT = "finance_debit"
@@ -49,6 +50,7 @@ class ModuleEnum(str, Enum):
 ALL_MODULES = [
     ModuleEnum.STUDENTS.value,
     ModuleEnum.TEACHERS.value,
+    ModuleEnum.STAFF.value,
     ModuleEnum.FINANCE_DASHBOARD.value,
     ModuleEnum.FINANCE_RECEIVED.value,
     ModuleEnum.FINANCE_DEBIT.value,
@@ -376,6 +378,84 @@ class TeacherUpdate(SQLModel):
     institution: Optional[str] = None
     previous_institute: Optional[str] = None
     subject: Optional[str] = None
+    father_guardian_name: Optional[str] = None
+
+    # Optional Documents
+    doc_contract: Optional[str] = None
+    doc_payslip: Optional[str] = None
+    doc_cnic: Optional[str] = None
+
+
+# ----------------- STAFF SQLMODEL -----------------
+class Staff(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    roll_no: str = Field(index=True, unique=True, description="Staff ID / Roll No e.g. STF-2026-001")
+    name: str = Field(index=True)
+    picture: str = Field(default="")
+    email: Optional[str] = Field(default="")
+    nic: str = Field(default="")
+    dob: date_type
+    gender: str = Field(default="Male")
+    contact: str = Field(default="")
+    current_address: str = Field(sa_column=Column(Text, default=""))
+    permanent_address: str = Field(sa_column=Column(Text, default=""))
+    city: str = Field(default="")
+    country: str = Field(default="Pakistan")
+    institution: str = Field(default="Jamia Usmania")
+    previous_institute: Optional[str] = Field(default="")
+    admission_date: date_type = Field(default_factory=date_type.today, description="Joining Date")
+    islamic_date: str = Field(default="")
+
+    # Staff specific designation/role
+    designation: str = Field(default="Staff", description="Role / Designation e.g. Accountant, Security Incharge, Cook, Warden, Electrician, Office Staff")
+    father_guardian_name: Optional[str] = Field(default="")
+
+    # Optional Staff Documents / Images
+    doc_contract: Optional[str] = Field(default="", description="Staff Contract / Agreement Document URL")
+    doc_payslip: Optional[str] = Field(default="", description="Payslip / Salary Voucher Image URL")
+    doc_cnic: Optional[str] = Field(default="", description="Staff CNIC Copy Image URL")
+
+
+class StaffCreate(SQLModel):
+    name: str
+    picture: Optional[str] = ""
+    email: Optional[str] = ""
+    nic: str
+    dob: date_type
+    gender: str = "Male"
+    contact: str
+    current_address: str
+    permanent_address: str
+    city: str
+    country: str = "Pakistan"
+    institution: str = "Jamia Usmania"
+    previous_institute: Optional[str] = ""
+    admission_date: Optional[date_type] = None
+    
+    designation: str = "Staff"
+    father_guardian_name: Optional[str] = ""
+
+    # Optional Documents
+    doc_contract: Optional[str] = ""
+    doc_payslip: Optional[str] = ""
+    doc_cnic: Optional[str] = ""
+
+
+class StaffUpdate(SQLModel):
+    name: Optional[str] = None
+    picture: Optional[str] = None
+    email: Optional[str] = None
+    nic: Optional[str] = None
+    dob: Optional[date_type] = None
+    gender: Optional[str] = None
+    contact: Optional[str] = None
+    current_address: Optional[str] = None
+    permanent_address: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    institution: Optional[str] = None
+    previous_institute: Optional[str] = None
+    designation: Optional[str] = None
     father_guardian_name: Optional[str] = None
 
     # Optional Documents

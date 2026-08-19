@@ -50,6 +50,11 @@ const MODULE_LABELS: Record<string, { label: string; desc: string; iconBg: strin
     desc: 'Teacher registration, subjects taught, agreements, ID cards',
     iconBg: 'bg-blue-50 text-blue-700'
   },
+  staff: {
+    label: 'Staff Records (ملازمین و غیر تدریسی عملہ)',
+    desc: 'Staff registration, designations/roles, employment contracts, ID cards, PDF export',
+    iconBg: 'bg-purple-50 text-purple-700'
+  },
   finance_dashboard: {
     label: 'Finance Dashboard & Balances (مالیاتی خلاصہ)',
     desc: 'Grand total, Cash/JazzCash/Easypaisa/Meezan account balances, analytics charts',

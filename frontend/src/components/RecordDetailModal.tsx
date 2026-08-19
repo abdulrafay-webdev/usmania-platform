@@ -4,10 +4,13 @@ import React, { useState } from 'react';
 import {
   Student,
   Teacher,
+  Staff,
   getStudentPdfDownloadUrl,
   getTeacherPdfDownloadUrl,
+  getStaffPdfDownloadUrl,
   getStudentIdCardDownloadUrl,
-  getTeacherIdCardDownloadUrl
+  getTeacherIdCardDownloadUrl,
+  getStaffIdCardDownloadUrl
 } from '@/lib/api';
 import {
   X,
@@ -33,17 +36,18 @@ import {
   CreditCard,
   ExternalLink,
   Eye,
-  FileCheck
+  FileCheck,
+  Briefcase
 } from 'lucide-react';
 
 interface RecordDetailModalProps {
-  record: Student | Teacher | null;
-  type: 'student' | 'teacher';
+  record: Student | Teacher | Staff | null;
+  type: 'student' | 'teacher' | 'staff';
   isOpen: boolean;
   onClose: () => void;
-  onViewIdCard?: (record: Student | Teacher) => void;
-  onEdit?: (record: Student | Teacher) => void;
-  onDelete?: (record: Student | Teacher) => void;
+  onViewIdCard?: (record: any) => void;
+  onEdit?: (record: any) => void;
+  onDelete?: (record: any) => void;
 }
 
 export default function RecordDetailModal({
@@ -60,20 +64,26 @@ export default function RecordDetailModal({
   if (!isOpen || !record) return null;
 
   const isStudent = type === 'student';
+  const isStaff = type === 'staff';
   const studentRec = record as Student;
   const teacherRec = record as Teacher;
+  const staffRec = record as Staff;
 
   const pdfUrl = isStudent
     ? getStudentPdfDownloadUrl(record.id)
+    : isStaff
+    ? getStaffPdfDownloadUrl(record.id)
     : getTeacherPdfDownloadUrl(record.id);
 
   const idCardUrl = isStudent
     ? getStudentIdCardDownloadUrl(record.id)
+    : isStaff
+    ? getStaffIdCardDownloadUrl(record.id)
     : getTeacherIdCardDownloadUrl(record.id);
 
   const fatherName = isStudent
     ? studentRec.father_name || studentRec.father_guardian_name || '—'
-    : teacherRec.father_guardian_name || '—';
+    : record.father_guardian_name || '—';
 
   return (
     <>
@@ -118,6 +128,8 @@ export default function RecordDetailModal({
                 <p className="text-xs text-[#FDF6E3] mt-1 font-medium">
                   {isStudent
                     ? `Class: ${studentRec.student_class} ${studentRec.subject ? `• ${studentRec.subject}` : ''}`
+                    : isStaff
+                    ? `Designation / Role: ${staffRec.designation || 'Staff'}`
                     : `Subject Taught: ${teacherRec.subject}`}
                 </p>
               </div>
@@ -373,14 +385,24 @@ export default function RecordDetailModal({
                   {/* 1. Contract */}
                   <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
                     <span className="text-[11px] font-bold text-gray-700 flex items-center gap-1">
-                      <FileText className="w-3.5 h-3.5 text-[#145A32]" /> Contract Agreement
+                      <FileText className="w-3.5 h-3.5 text-[#145A32]" />
+                      {isStaff ? 'Staff Contract Agreement' : 'Teacher Contract Agreement'}
                     </span>
-                    {teacherRec.doc_contract ? (
+                    {(isStaff ? staffRec.doc_contract : teacherRec.doc_contract) ? (
                       <div
-                        onClick={() => setLightboxImage({ url: teacherRec.doc_contract!, title: 'Teacher Contract / Agreement' })}
+                        onClick={() =>
+                          setLightboxImage({
+                            url: (isStaff ? staffRec.doc_contract : teacherRec.doc_contract)!,
+                            title: isStaff ? 'Staff Contract / Agreement' : 'Teacher Contract / Agreement'
+                          })
+                        }
                         className="group relative h-24 rounded-lg overflow-hidden border border-[#145A32]/30 bg-white cursor-pointer shadow-2xs flex items-center justify-center"
                       >
-                        <img src={teacherRec.doc_contract} alt="Contract" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        <img
+                          src={isStaff ? staffRec.doc_contract : teacherRec.doc_contract}
+                          alt="Contract"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-[11px] font-bold">
                           <Eye className="w-4 h-4" /> View Full
                         </div>
@@ -397,12 +419,21 @@ export default function RecordDetailModal({
                     <span className="text-[11px] font-bold text-gray-700 flex items-center gap-1">
                       <Receipt className="w-3.5 h-3.5 text-blue-600" /> Payslip / Salary
                     </span>
-                    {teacherRec.doc_payslip ? (
+                    {(isStaff ? staffRec.doc_payslip : teacherRec.doc_payslip) ? (
                       <div
-                        onClick={() => setLightboxImage({ url: teacherRec.doc_payslip!, title: 'Payslip / Salary Voucher' })}
+                        onClick={() =>
+                          setLightboxImage({
+                            url: (isStaff ? staffRec.doc_payslip : teacherRec.doc_payslip)!,
+                            title: 'Payslip / Salary Voucher'
+                          })
+                        }
                         className="group relative h-24 rounded-lg overflow-hidden border border-blue-200 bg-white cursor-pointer shadow-2xs flex items-center justify-center"
                       >
-                        <img src={teacherRec.doc_payslip} alt="Payslip" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        <img
+                          src={isStaff ? staffRec.doc_payslip : teacherRec.doc_payslip}
+                          alt="Payslip"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-[11px] font-bold">
                           <Eye className="w-4 h-4" /> View Full
                         </div>
@@ -419,12 +450,21 @@ export default function RecordDetailModal({
                     <span className="text-[11px] font-bold text-gray-700 flex items-center gap-1">
                       <CreditCard className="w-3.5 h-3.5 text-amber-700" /> CNIC Copy
                     </span>
-                    {teacherRec.doc_cnic ? (
+                    {(isStaff ? staffRec.doc_cnic : teacherRec.doc_cnic) ? (
                       <div
-                        onClick={() => setLightboxImage({ url: teacherRec.doc_cnic!, title: 'Teacher CNIC Copy' })}
+                        onClick={() =>
+                          setLightboxImage({
+                            url: (isStaff ? staffRec.doc_cnic : teacherRec.doc_cnic)!,
+                            title: isStaff ? 'Staff CNIC Copy' : 'Teacher CNIC Copy'
+                          })
+                        }
                         className="group relative h-24 rounded-lg overflow-hidden border border-amber-200 bg-white cursor-pointer shadow-2xs flex items-center justify-center"
                       >
-                        <img src={teacherRec.doc_cnic} alt="CNIC" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                        <img
+                          src={isStaff ? staffRec.doc_cnic : teacherRec.doc_cnic}
+                          alt="CNIC"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1 text-[11px] font-bold">
                           <Eye className="w-4 h-4" /> View Full
                         </div>

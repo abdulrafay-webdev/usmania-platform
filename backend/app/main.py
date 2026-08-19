@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.db import init_db
-from app.routers import auth, users, roles, students, teachers, finance, donors, upload
+from app.routers import auth, users, roles, students, teachers, staff, finance, donors, upload
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -16,8 +16,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Jamia Usmania Trust — Madrasa Management API",
-    description="Backend API for managing Student & Teacher records, Finance Module, RBAC Users & Roles, Donors Directory, Hijri date conversion, PDF exports, and Excel exports.",
-    version="1.3.0",
+    description="Backend API for managing Student & Teacher records, Staff Management, Finance Module, RBAC Users & Roles, Donors Directory, Hijri date conversion, PDF exports, and Excel exports.",
+    version="1.4.0",
     lifespan=lifespan
 )
 
@@ -67,6 +67,7 @@ app.include_router(users.router)
 app.include_router(roles.router)
 app.include_router(students.router)
 app.include_router(teachers.router)
+app.include_router(staff.router)
 app.include_router(finance.router)
 app.include_router(donors.router)
 app.include_router(upload.router)

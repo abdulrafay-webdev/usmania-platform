@@ -257,6 +257,8 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
 
         if record_data.get("assigned_teacher_name"):
             info_rows.append([Paragraph("Assigned Teacher:", label_style), Paragraph(str(record_data.get("assigned_teacher_name")), ParagraphStyle('UT', parent=value_style, fontName='Helvetica-Bold', textColor=PRIMARY_GREEN))])
+    elif record_type == "Staff":
+        info_rows.append(fmt("Role / Designation", "designation"))
     else:
         info_rows.append(fmt("Subject Taught", "subject"))
 
@@ -310,6 +312,19 @@ def generate_record_pdf(record_data: dict, record_type: str = "Student") -> byte
         if record_data.get('doc_activity_diary'):
             doc_list.append("Activity Diary (Attached)")
             attached_documents.append(("ACTIVITY DIARY / PERFORMANCE REPORT", "کارکردگی ڈائری / تعلیمی ریکارڈ", record_data.get('doc_activity_diary')))
+        doc_str = ", ".join(doc_list) if doc_list else "None uploaded (Optional)"
+        add_rows.append([Paragraph("Attached Documents", label_style), Paragraph(doc_str, value_style)])
+    elif record_type == "Staff":
+        doc_list = []
+        if record_data.get('doc_contract'):
+            doc_list.append("Staff Contract (Attached)")
+            attached_documents.append(("STAFF CONTRACT / AGREEMENT", "معاہدہ ملازمت / ایگریمنٹ", record_data.get('doc_contract')))
+        if record_data.get('doc_payslip'):
+            doc_list.append("Payslip Voucher (Attached)")
+            attached_documents.append(("PAYSLIP / SALARY VOUCHER", "تنخواہ سلپ / بینک واؤچر", record_data.get('doc_payslip')))
+        if record_data.get('doc_cnic'):
+            doc_list.append("CNIC Copy (Attached)")
+            attached_documents.append(("CNIC COPY (FRONT / BACK)", "قومی شناختی کارڈ کی کاپی", record_data.get('doc_cnic')))
         doc_str = ", ".join(doc_list) if doc_list else "None uploaded (Optional)"
         add_rows.append([Paragraph("Attached Documents", label_style), Paragraph(doc_str, value_style)])
     else:
