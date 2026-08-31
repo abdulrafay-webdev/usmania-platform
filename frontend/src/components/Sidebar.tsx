@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 
 export type MainTabType =
+  | 'academic-dashboard'
   | 'students'
   | 'teachers'
   | 'staff'
@@ -70,6 +71,7 @@ export default function Sidebar({
   const showStudents = canAccessModule('students');
   const showTeachers = canAccessModule('teachers');
   const showStaff = canAccessModule('staff');
+  const showAcademicDashboard = showStudents || showTeachers || showStaff;
   const showDonors = hasPermission('finance_received', 'view');
   const showFinanceDashboard = hasPermission('finance_dashboard', 'view');
   const showFinanceReceived = canAccessModule('finance_received');
@@ -107,60 +109,93 @@ export default function Sidebar({
         />
       )}
 
+      {/* Main Sidebar Container */}
       <aside
-        className={`w-64 bg-white border-r border-gray-200 h-screen fixed left-0 top-0 flex flex-col justify-between z-50 shadow-md md:shadow-xs overflow-y-auto transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50 transition-transform duration-300 ease-in-out md:translate-x-0 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div>
-          {/* Top Header with Logo & Mobile Close Button */}
-          <div className="p-4 sm:p-5 border-b border-gray-100 bg-[#FAF5EA]/50 flex items-center justify-between">
-            <TrustLogo />
-            {onClose && (
+        <div className="h-full flex flex-col justify-between">
+          {/* Top Section */}
+          <div className="overflow-y-auto flex-1">
+            {/* Logo / Brand */}
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <TrustLogo size="sm" />
+                <div className="leading-tight">
+                  <h1 className="font-bold text-sm text-[#145A32] font-serif tracking-wide">
+                    JAMIA USMANIA
+                  </h1>
+                  <p className="text-[10px] text-gray-500 font-medium">Official Portal</p>
+                </div>
+              </div>
+
+              {/* Close Button for Mobile Drawer */}
               <button
                 onClick={onClose}
-                className="md:hidden p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-200/60 rounded-lg transition-colors"
-                title="Close menu"
+                className="md:hidden p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
-            )}
-          </div>
-
-          {/* New Admission Quick Action Button */}
-          {canCreateAdmission && (
-            <div className="p-4">
-              <button
-                onClick={() => {
-                  const targetRole =
-                    activeTab === 'teachers' && hasPermission('teachers', 'create')
-                      ? 'teacher'
-                      : hasPermission('students', 'create')
-                      ? 'student'
-                      : 'teacher';
-                  onOpenAdmissionModal(targetRole);
-                  if (onClose) onClose();
-                }}
-                className="w-full py-2.5 px-4 bg-[#145A32] hover:bg-[#0E4124] text-white font-medium rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all duration-150 active:scale-[0.98] text-sm cursor-pointer"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>+ New Admission</span>
-              </button>
             </div>
-          )}
 
-          {/* Navigation Tabs */}
-          <nav className="px-3 space-y-1">
-            {/* Students Tab */}
-            {showStudents && (
-              <button
-                onClick={() => handleSelectTab('students')}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg font-medium text-sm transition-all cursor-pointer ${
-                  activeTab === 'students'
-                    ? 'bg-[#145A32] text-white shadow-xs'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
+            {/* Quick Action Button */}
+            {canCreateAdmission && (
+              <div className="p-3">
+                <button
+                  onClick={() => {
+                    const targetRole =
+                      activeTab === 'teachers'
+                        ? 'teacher'
+                        : activeTab === 'staff'
+                        ? 'staff'
+                        : hasPermission('students', 'create')
+                        ? 'student'
+                        : 'teacher';
+                    onOpenAdmissionModal(targetRole);
+                    if (onClose) onClose();
+                  }}
+                  className="w-full py-2.5 px-4 bg-[#145A32] hover:bg-[#0E4124] text-white font-medium rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all duration-150 active:scale-[0.98] text-sm cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>+ New Admission</span>
+                </button>
+              </div>
+            )}
+
+            {/* Navigation Tabs */}
+            <nav className="px-3 space-y-1">
+              {/* Academic Dashboard Tab */}
+              {showAcademicDashboard && (
+                <button
+                  onClick={() => handleSelectTab('academic-dashboard')}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg font-medium text-sm transition-all cursor-pointer ${
+                    activeTab === 'academic-dashboard'
+                      ? 'bg-[#145A32] text-white shadow-xs'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <LayoutDashboard
+                      className={`w-4 h-4 ${
+                        activeTab === 'academic-dashboard' ? 'text-white' : 'text-[#145A32]'
+                      }`}
+                    />
+                    <span className="font-bold">Academic Overview</span>
+                  </div>
+                </button>
+              )}
+
+              {/* Students Tab */}
+              {showStudents && (
+                <button
+                  onClick={() => handleSelectTab('students')}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg font-medium text-sm transition-all cursor-pointer ${
+                    activeTab === 'students'
+                      ? 'bg-[#145A32] text-white shadow-xs'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
                 <div className="flex items-center gap-3">
                   <GraduationCap className={`w-4 h-4 ${activeTab === 'students' ? 'text-white' : 'text-[#145A32]'}`} />
                   <span>Students</span>
@@ -417,6 +452,7 @@ export default function Sidebar({
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
           </button>
+        </div>
         </div>
       </aside>
     </>

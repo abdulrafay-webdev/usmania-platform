@@ -30,14 +30,18 @@ export default function TopBar({
   });
 
   const getPlaceholder = () => {
+    if (activeTab === 'academic-dashboard') return 'Search academic records, class, teacher...';
     if (activeTab === 'students') return 'Search students by name, roll no...';
     if (activeTab === 'teachers') return 'Search teachers by name, roll no...';
+    if (activeTab === 'staff') return 'Search staff by name, roll no, designation...';
     if (activeTab === 'donors') return 'Search donors...';
-    if (activeTab === 'finance-received') return 'Search received...';
-    if (activeTab === 'finance-debit') return 'Search debits...';
-    if (activeTab === 'finance-kind-donation') return 'Search items...';
-    if (activeTab === 'finance-loan') return 'Search loans...';
-    if (activeTab === 'settings-users') return 'Search settings...';
+    if (activeTab === 'finance-dashboard') return 'Search financial metrics...';
+    if (activeTab === 'finance-received') return 'Search received donations...';
+    if (activeTab === 'finance-debit') return 'Search debits and expenses...';
+    if (activeTab === 'finance-kind-donation') return 'Search in-kind items...';
+    if (activeTab === 'finance-loan') return 'Search loans & lenders...';
+    if (activeTab === 'finance-liability') return 'Search bills & liabilities...';
+    if (activeTab === 'settings-users') return 'Search users & roles...';
     return 'Search records...';
   };
 

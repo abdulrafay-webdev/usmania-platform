@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar, { MainTabType } from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
+import AcademicDashboard from '@/components/academic/AcademicDashboard';
 import StudentTable from '@/components/StudentTable';
 import TeacherTable from '@/components/TeacherTable';
 import StaffTable from '@/components/StaffTable';
@@ -35,7 +36,7 @@ import {
   deleteStaff,
   exportSelectedExcel
 } from '@/lib/api';
-import { GraduationCap, Users, Briefcase, UserPlus, RefreshCw, Plus, CheckCircle2 } from 'lucide-react';
+import { GraduationCap, Users, Briefcase, UserPlus, RefreshCw, Plus, CheckCircle2, LayoutDashboard } from 'lucide-react';
 
 export default function DashboardPage() {
   const {
@@ -49,7 +50,7 @@ export default function DashboardPage() {
     isCreateOnly
   } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<MainTabType>('students');
+  const [activeTab, setActiveTab] = useState<MainTabType>('academic-dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -84,6 +85,9 @@ export default function DashboardPage() {
     if (!isAuthenticated) return;
 
     const allowedTabs: MainTabType[] = [];
+    if (canAccessModule('students') || canAccessModule('teachers') || canAccessModule('staff')) {
+      allowedTabs.push('academic-dashboard');
+    }
     if (canAccessModule('students')) allowedTabs.push('students');
     if (canAccessModule('teachers')) allowedTabs.push('teachers');
     if (canAccessModule('staff')) allowedTabs.push('staff');
@@ -101,7 +105,7 @@ export default function DashboardPage() {
     }
   }, [isAuthenticated, currentRole]);
 
-  // Fetch Data Function for Students / Teachers / Staff
+  // Fetch Data Function for Students / Teachers / Staff / Academic Dashboard
   const loadData = useCallback(async () => {
     if (!isAuthenticated) return;
     if (activeTab.startsWith('finance') || activeTab === 'donors' || activeTab === 'settings-users') return;
@@ -112,7 +116,16 @@ export default function DashboardPage() {
 
     setLoading(true);
     try {
-      if (activeTab === 'students') {
+      if (activeTab === 'academic-dashboard') {
+        const [sData, tData, stData] = await Promise.all([
+          hasPermission('students', 'view') ? getStudents() : Promise.resolve([]),
+          hasPermission('teachers', 'view') ? getTeachers() : Promise.resolve([]),
+          hasPermission('staff', 'view') ? getStaff() : Promise.resolve([])
+        ]);
+        setStudents(sData);
+        setTeachers(tData);
+        setStaffList(stData);
+      } else if (activeTab === 'students') {
         const data = await getStudents(searchQuery);
         setStudents(data);
       } else if (activeTab === 'teachers') {
@@ -397,6 +410,28 @@ export default function DashboardPage() {
           )}
 
           {/* Render Active View */}
+          {activeTab === 'academic-dashboard' && (
+            <AcademicDashboard
+              students={students}
+              teachers={teachers}
+              staffList={staffList}
+              onNavigateToStudents={(filterClass) => {
+                setActiveTab('students');
+                if (filterClass) setSearchQuery(filterClass);
+              }}
+              onNavigateToTeachers={() => {
+                setActiveTab('teachers');
+                setSearchQuery('');
+              }}
+              onNavigateToStaff={() => {
+                setActiveTab('staff');
+                setSearchQuery('');
+              }}
+              onViewStudent={handleViewDetail}
+              onViewTeacher={handleViewDetail}
+            />
+          )}
+
           {activeTab === 'students' && (
             isCreateOnly('students') ? (
               <div className="max-w-xl mx-auto bg-white p-8 rounded-2xl border border-gray-200 shadow-sm text-center space-y-4">
