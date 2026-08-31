@@ -793,6 +793,7 @@ export default function AdmissionModal({
                     <option value="Tajweed & Qirat">Tajweed & Qirat</option>
                     <option value="Darse Nizami (Alim)">Darse Nizami (Alim)</option>
                     <option value="Tafseer & Hadith">Tafseer & Hadith</option>
+                    <option value="Takhasus fil fiqha al islami">Takhasus fil fiqha al islami</option>
                     <option value="Grade 1">Grade 1</option>
                     <option value="Grade 2">Grade 2</option>
                     <option value="Grade 3">Grade 3</option>

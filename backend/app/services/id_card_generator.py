@@ -270,7 +270,7 @@ def build_front_card(record_data: dict, record_type: str) -> Table:
     ]
 
     if record_type == "Student":
-        st_class = truncate_text(record_data.get('student_class', 'N/A'), 18)
+        st_class = truncate_text(record_data.get('student_class', 'N/A'), 32)
         fields.append([Paragraph("Class:", label_style), Paragraph(st_class, value_style)])
         if record_data.get('assigned_teacher_name'):
             u_teacher = truncate_text(record_data.get('assigned_teacher_name'), 20)
