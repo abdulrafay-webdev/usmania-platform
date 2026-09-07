@@ -1,3 +1,4 @@
+import os
 from sqlmodel import SQLModel, create_engine, Session, select, text
 from app.config import settings
 from app.models import (
@@ -5,7 +6,7 @@ from app.models import (
 )
 from app.services.auth_service import hash_password
 
-db_url = settings.DATABASE_URL
+db_url = settings.DATABASE_URL or os.getenv("DATABASE_URL", "sqlite:///./jamia_usmania.db")
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
