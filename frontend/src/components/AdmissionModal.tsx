@@ -10,6 +10,9 @@ import {
   updateStaff,
   uploadPicture,
   getTeachers,
+  getStudentById,
+  getTeacherById,
+  getStaffById,
   Student,
   Teacher,
   Staff
@@ -149,6 +152,15 @@ export default function AdmissionModal({
           setDocZakatFile(null);
           setDocBirthCertFile(null);
           setDocActivityDiaryFile(null);
+
+          // Fetch full student in background to load deferred documents
+          getStudentById(editRecord.id).then((full) => {
+            if (full) {
+              if (full.doc_zakat) setDocZakatPreview(full.doc_zakat);
+              if (full.doc_birth_certificate) setDocBirthCertPreview(full.doc_birth_certificate);
+              if (full.doc_activity_diary) setDocActivityDiaryPreview(full.doc_activity_diary);
+            }
+          }).catch(() => {});
         } else if (isStaff) {
           setDocContractPreview(staffRec.doc_contract || '');
           setDocPayslipPreview(staffRec.doc_payslip || '');
@@ -156,6 +168,15 @@ export default function AdmissionModal({
           setDocContractFile(null);
           setDocPayslipFile(null);
           setDocCnicFile(null);
+
+          // Fetch full staff in background to load deferred documents
+          getStaffById(editRecord.id).then((full) => {
+            if (full) {
+              if (full.doc_contract) setDocContractPreview(full.doc_contract);
+              if (full.doc_payslip) setDocPayslipPreview(full.doc_payslip);
+              if (full.doc_cnic) setDocCnicPreview(full.doc_cnic);
+            }
+          }).catch(() => {});
         } else {
           setDocContractPreview(teach.doc_contract || '');
           setDocPayslipPreview(teach.doc_payslip || '');
@@ -163,6 +184,15 @@ export default function AdmissionModal({
           setDocContractFile(null);
           setDocPayslipFile(null);
           setDocCnicFile(null);
+
+          // Fetch full teacher in background to load deferred documents
+          getTeacherById(editRecord.id).then((full) => {
+            if (full) {
+              if (full.doc_contract) setDocContractPreview(full.doc_contract);
+              if (full.doc_payslip) setDocPayslipPreview(full.doc_payslip);
+              if (full.doc_cnic) setDocCnicPreview(full.doc_cnic);
+            }
+          }).catch(() => {});
         }
 
         setFormData({

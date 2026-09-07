@@ -2,6 +2,7 @@ from datetime import date
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlmodel import Session, select, or_
+from sqlalchemy.orm import defer
 
 from app.db import get_session
 from app.models import Teacher, TeacherCreate, TeacherUpdate, BulkExportRequest, User
@@ -14,10 +15,23 @@ from app.dependencies import require_permission
 router = APIRouter(prefix="/api/teachers", tags=["Teachers"])
 
 def generate_next_teacher_roll_no(session: Session) -> str:
-    statement = select(Teacher)
-    teachers = session.exec(statement).all()
-    count = len(teachers) + 1
-    return f"JUT-TCH-{count:04d}"
+    # Query only roll_no column to prevent loading heavy rows/images into memory
+    statement = select(Teacher.roll_no)
+    roll_numbers = set(session.exec(statement).all())
+    max_num = 0
+    for r in roll_numbers:
+        if r and r.startswith("JUT-TCH-"):
+            try:
+                num = int(r.replace("JUT-TCH-", "").split("-")[0])
+                if num > max_num:
+                    max_num = num
+            except (ValueError, IndexError):
+                pass
+    next_num = max_num + 1
+    # Check to guarantee no unique constraint collisions
+    while f"JUT-TCH-{next_num:04d}" in roll_numbers:
+        next_num += 1
+    return f"JUT-TCH-{next_num:04d}"
 
 @router.post("", response_model=Teacher, status_code=201)
 def create_teacher(
@@ -49,7 +63,18 @@ def list_teachers(
     session: Session = Depends(get_session),
     _: User = Depends(require_permission("teachers", "view"))
 ):
-    statement = select(Teacher).offset(skip).limit(limit).order_by(Teacher.admission_date.desc())
+    # Defer heavy documents to reduce network transfer
+    statement = (
+        select(Teacher)
+        .options(
+            defer(Teacher.doc_contract),
+            defer(Teacher.doc_payslip),
+            defer(Teacher.doc_cnic)
+        )
+        .offset(skip)
+        .limit(limit)
+        .order_by(Teacher.admission_date.desc())
+    )
     return session.exec(statement).all()
 
 @router.get("/search", response_model=List[Teacher])
@@ -58,11 +83,16 @@ def search_teachers(
     session: Session = Depends(get_session),
     _: User = Depends(require_permission("teachers", "view"))
 ):
+    base_options = (
+        defer(Teacher.doc_contract),
+        defer(Teacher.doc_payslip),
+        defer(Teacher.doc_cnic)
+    )
     if not q or not q.strip():
-        return session.exec(select(Teacher).order_by(Teacher.admission_date.desc())).all()
+        return session.exec(select(Teacher).options(*base_options).order_by(Teacher.admission_date.desc())).all()
     
     term = f"%{q.strip()}%"
-    statement = select(Teacher).where(
+    statement = select(Teacher).options(*base_options).where(
         or_(
             Teacher.name.ilike(term),
             Teacher.roll_no.ilike(term),

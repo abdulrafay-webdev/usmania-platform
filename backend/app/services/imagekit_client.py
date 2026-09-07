@@ -5,9 +5,9 @@ import requests
 from PIL import Image as PILImage
 from app.config import settings
 
-def compress_image_bytes(file_bytes: bytes, max_dimension=1200, quality=80) -> bytes:
+def compress_image_bytes(file_bytes: bytes, max_dimension=800, quality=75) -> bytes:
     """
-    Compresses image bytes using PIL to ensure file sizes are small (<200KB),
+    Compresses image bytes using PIL to ensure file sizes are small (<80KB),
     fast to transfer, and well within all serverless function payload limits.
     """
     try:
@@ -40,7 +40,7 @@ def upload_image_to_imagekit(file_bytes: bytes, file_name: str) -> str:
     Returns the public image URL or lightweight fallback base64 URL.
     """
     # 1. Compress image bytes first
-    compressed_bytes = compress_image_bytes(file_bytes, max_dimension=1200, quality=80)
+    compressed_bytes = compress_image_bytes(file_bytes, max_dimension=800, quality=75)
 
     if not settings.IMAGEKIT_PRIVATE_KEY or not settings.IMAGEKIT_URL_ENDPOINT:
         # Lightweight compressed fallback
@@ -54,7 +54,9 @@ def upload_image_to_imagekit(file_bytes: bytes, file_name: str) -> str:
             upload_name = f"{os.path.splitext(file_name)[0]}.jpg" if '.' in file_name else f"{file_name}.jpg"
 
         files = {
-            'file': (upload_name, compressed_bytes),
+            'file': (upload_name, compressed_bytes, 'image/jpeg')
+        }
+        data = {
             'fileName': upload_name,
             'useUniqueFileName': 'true',
             'folder': '/jamia_usmania_photos'
@@ -66,10 +68,10 @@ def upload_image_to_imagekit(file_bytes: bytes, file_name: str) -> str:
             'Authorization': f'Basic {auth_header}'
         }
 
-        res = requests.post(url, files=files, headers=headers, timeout=15)
+        res = requests.post(url, files=files, data=data, headers=headers, timeout=15)
         if res.status_code in (200, 201):
-            data = res.json()
-            return data.get("url", "")
+            data_res = res.json()
+            return data_res.get("url", "")
         else:
             # Fallback with compressed bytes
             b64_data = base64.b64encode(compressed_bytes).decode('utf-8')

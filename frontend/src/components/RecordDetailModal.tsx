@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Student,
   Teacher,
   Staff,
+  getStudentById,
+  getTeacherById,
+  getStaffById,
   getStudentPdfDownloadUrl,
   getTeacherPdfDownloadUrl,
   getStaffPdfDownloadUrl,
@@ -60,30 +63,61 @@ export default function RecordDetailModal({
   onDelete
 }: RecordDetailModalProps) {
   const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null);
+  const [fullRecord, setFullRecord] = useState<Student | Teacher | Staff | null>(record);
+
+  useEffect(() => {
+    setFullRecord(record);
+    if (!isOpen || !record?.id) return;
+
+    let isMounted = true;
+    const fetchFull = async () => {
+      try {
+        let fullData: Student | Teacher | Staff;
+        if (type === 'student') {
+          fullData = await getStudentById(record.id);
+        } else if (type === 'staff') {
+          fullData = await getStaffById(record.id);
+        } else {
+          fullData = await getTeacherById(record.id);
+        }
+        if (isMounted) {
+          setFullRecord(fullData);
+        }
+      } catch (err) {
+        // Fall back gracefully to the already loaded summary record
+      }
+    };
+    fetchFull();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, record?.id, type]);
 
   if (!isOpen || !record) return null;
 
+  const currentRecord = fullRecord || record;
   const isStudent = type === 'student';
   const isStaff = type === 'staff';
-  const studentRec = record as Student;
-  const teacherRec = record as Teacher;
-  const staffRec = record as Staff;
+  const studentRec = currentRecord as Student;
+  const teacherRec = currentRecord as Teacher;
+  const staffRec = currentRecord as Staff;
 
   const pdfUrl = isStudent
-    ? getStudentPdfDownloadUrl(record.id)
+    ? getStudentPdfDownloadUrl(currentRecord.id)
     : isStaff
-    ? getStaffPdfDownloadUrl(record.id)
-    : getTeacherPdfDownloadUrl(record.id);
+    ? getStaffPdfDownloadUrl(currentRecord.id)
+    : getTeacherPdfDownloadUrl(currentRecord.id);
 
   const idCardUrl = isStudent
-    ? getStudentIdCardDownloadUrl(record.id)
+    ? getStudentIdCardDownloadUrl(currentRecord.id)
     : isStaff
-    ? getStaffIdCardDownloadUrl(record.id)
-    : getTeacherIdCardDownloadUrl(record.id);
+    ? getStaffIdCardDownloadUrl(currentRecord.id)
+    : getTeacherIdCardDownloadUrl(currentRecord.id);
 
   const fatherName = isStudent
     ? studentRec.father_name || studentRec.father_guardian_name || '—'
-    : record.father_guardian_name || '—';
+    : currentRecord.father_guardian_name || '—';
 
   return (
     <>

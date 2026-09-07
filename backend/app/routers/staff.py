@@ -2,6 +2,7 @@ from datetime import date
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlmodel import Session, select, or_
+from sqlalchemy.orm import defer
 
 from app.db import get_session
 from app.models import Staff, StaffCreate, StaffUpdate, BulkExportRequest, User
@@ -14,10 +15,23 @@ from app.dependencies import require_permission
 router = APIRouter(prefix="/api/staff", tags=["Staff Management"])
 
 def generate_next_staff_roll_no(session: Session) -> str:
-    statement = select(Staff)
-    staff_members = session.exec(statement).all()
-    count = len(staff_members) + 1
-    return f"JUT-STF-{count:04d}"
+    # Query only roll_no column to prevent loading heavy rows/images into memory
+    statement = select(Staff.roll_no)
+    roll_numbers = set(session.exec(statement).all())
+    max_num = 0
+    for r in roll_numbers:
+        if r and r.startswith("JUT-STF-"):
+            try:
+                num = int(r.replace("JUT-STF-", "").split("-")[0])
+                if num > max_num:
+                    max_num = num
+            except (ValueError, IndexError):
+                pass
+    next_num = max_num + 1
+    # Check to guarantee no unique constraint collisions
+    while f"JUT-STF-{next_num:04d}" in roll_numbers:
+        next_num += 1
+    return f"JUT-STF-{next_num:04d}"
 
 @router.post("", response_model=Staff, status_code=201)
 def create_staff(
@@ -49,7 +63,18 @@ def list_staff(
     session: Session = Depends(get_session),
     _: User = Depends(require_permission("staff", "view"))
 ):
-    statement = select(Staff).offset(skip).limit(limit).order_by(Staff.admission_date.desc())
+    # Defer heavy documents to reduce network transfer
+    statement = (
+        select(Staff)
+        .options(
+            defer(Staff.doc_contract),
+            defer(Staff.doc_payslip),
+            defer(Staff.doc_cnic)
+        )
+        .offset(skip)
+        .limit(limit)
+        .order_by(Staff.admission_date.desc())
+    )
     return session.exec(statement).all()
 
 @router.get("/search", response_model=List[Staff])
@@ -58,11 +83,16 @@ def search_staff(
     session: Session = Depends(get_session),
     _: User = Depends(require_permission("staff", "view"))
 ):
+    base_options = (
+        defer(Staff.doc_contract),
+        defer(Staff.doc_payslip),
+        defer(Staff.doc_cnic)
+    )
     if not q or not q.strip():
-        return session.exec(select(Staff).order_by(Staff.admission_date.desc())).all()
+        return session.exec(select(Staff).options(*base_options).order_by(Staff.admission_date.desc())).all()
     
     term = f"%{q.strip()}%"
-    statement = select(Staff).where(
+    statement = select(Staff).options(*base_options).where(
         or_(
             Staff.name.ilike(term),
             Staff.roll_no.ilike(term),

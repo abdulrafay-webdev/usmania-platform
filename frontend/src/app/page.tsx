@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Sidebar, { MainTabType } from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
 import AcademicDashboard from '@/components/academic/AcademicDashboard';
@@ -126,13 +126,13 @@ export default function DashboardPage() {
         setTeachers(tData);
         setStaffList(stData);
       } else if (activeTab === 'students') {
-        const data = await getStudents(searchQuery);
+        const data = await getStudents();
         setStudents(data);
       } else if (activeTab === 'teachers') {
-        const data = await getTeachers(searchQuery);
+        const data = await getTeachers();
         setTeachers(data);
       } else if (activeTab === 'staff') {
-        const data = await getStaff(searchQuery);
+        const data = await getStaff();
         setStaffList(data);
       }
     } catch (err) {
@@ -140,13 +140,55 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, searchQuery, isAuthenticated, hasPermission]);
+  }, [activeTab, isAuthenticated, hasPermission]);
 
   useEffect(() => {
     if (isAuthenticated) {
       loadData();
     }
   }, [loadData, isAuthenticated]);
+
+  // Zero-latency, zero-network-transfer client search filtering
+  const filteredStudents = useMemo(() => {
+    if (!searchQuery.trim()) return students;
+    const q = searchQuery.toLowerCase().trim();
+    return students.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.roll_no.toLowerCase().includes(q) ||
+        (s.student_class && s.student_class.toLowerCase().includes(q)) ||
+        (s.nic && s.nic.includes(q)) ||
+        (s.father_name && s.father_name.toLowerCase().includes(q)) ||
+        (s.father_guardian_name && s.father_guardian_name.toLowerCase().includes(q)) ||
+        (s.contact && s.contact.includes(q))
+    );
+  }, [students, searchQuery]);
+
+  const filteredTeachers = useMemo(() => {
+    if (!searchQuery.trim()) return teachers;
+    const q = searchQuery.toLowerCase().trim();
+    return teachers.filter(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        t.roll_no.toLowerCase().includes(q) ||
+        (t.subject && t.subject.toLowerCase().includes(q)) ||
+        (t.nic && t.nic.includes(q)) ||
+        (t.contact && t.contact.includes(q))
+    );
+  }, [teachers, searchQuery]);
+
+  const filteredStaff = useMemo(() => {
+    if (!searchQuery.trim()) return staffList;
+    const q = searchQuery.toLowerCase().trim();
+    return staffList.filter(
+      (st) =>
+        st.name.toLowerCase().includes(q) ||
+        st.roll_no.toLowerCase().includes(q) ||
+        (st.designation && st.designation.toLowerCase().includes(q)) ||
+        (st.nic && st.nic.includes(q)) ||
+        (st.contact && st.contact.includes(q))
+    );
+  }, [staffList, searchQuery]);
 
   // Handlers for Student Selection
   const handleToggleSelectStudent = (id: string) => {
@@ -452,7 +494,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               <StudentTable
-                students={students}
+                students={filteredStudents}
                 selectedIds={selectedStudentIds}
                 onToggleSelect={handleToggleSelectStudent}
                 onToggleSelectAll={handleToggleSelectAllStudents}
@@ -485,7 +527,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               <TeacherTable
-                teachers={teachers}
+                teachers={filteredTeachers}
                 selectedIds={selectedTeacherIds}
                 onToggleSelect={handleToggleSelectTeacher}
                 onToggleSelectAll={handleToggleSelectAllTeachers}
@@ -518,7 +560,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               <StaffTable
-                staffList={staffList}
+                staffList={filteredStaff}
                 selectedIds={selectedStaffIds}
                 onToggleSelect={handleToggleSelectStaff}
                 onToggleSelectAll={handleToggleSelectAllStaff}
